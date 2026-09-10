@@ -40,6 +40,8 @@ Quinn/
     references/
       case-template.md
       feedback-guide.md
+  .claude/skills/business-judgment-practice/
+    SKILL.md            # 薄入口，指向 .codex 规范源
   cases/
     index.json
     case_001/
