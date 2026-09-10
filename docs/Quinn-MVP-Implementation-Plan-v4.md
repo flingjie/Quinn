@@ -35,13 +35,12 @@
 ```text
 Quinn/
   README.md
-  .codex/skills/business-judgment-practice/
+  .claude/skills/business-judgment-practice/
     SKILL.md
     references/
       case-template.md
       feedback-guide.md
-  .claude/skills/business-judgment-practice/
-    SKILL.md            # 薄入口，指向 .codex 规范源
+  .codex/skills/business-judgment-practice/   # 符号链接 → .claude 实现
   cases/
     index.json
     case_001/

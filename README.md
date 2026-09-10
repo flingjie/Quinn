@@ -8,8 +8,8 @@
 
 ```text
 Quinn/
-  .codex/skills/business-judgment-practice/   # 规范源（SKILL.md + references/）
-  .claude/skills/business-judgment-practice/  # 薄入口，指向 .codex 规范源
+  .claude/skills/business-judgment-practice/   # 实现（SKILL.md + references/）
+  .codex/skills/business-judgment-practice/    # 符号链接 → .claude 实现
   cases/                                      # 题目（每题 brief.md + coach.md）
   sessions/                                   # 训练记录（由 Skill 写入）
   docs/                                       # 设计文档
