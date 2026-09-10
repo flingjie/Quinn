@@ -1,10 +1,12 @@
 # macOS
 .DS_Store
 
-# 平台入口目录（薄封装，规范源在 business-judgment-trainer/）
-.claude/
-.codex/
+# 平台本地配置（保留 skills 以追踪规范源与薄入口）
+.claude/*
+!.claude/skills/
+.codex/*
+!.codex/skills/
 
 # 训练记录（个人练习数据，不纳入版本控制）
-business-judgment-trainer/sessions/*
-!business-judgment-trainer/sessions/README.md
+sessions/*
+!sessions/README.md
