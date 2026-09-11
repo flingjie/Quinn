@@ -1,10 +1,18 @@
 # macOS
 .DS_Store
 
+# Python
+__pycache__/
+*.pyc
+
 # 平台本地配置
 .claude/
 .codex/
 
-# 训练记录（个人练习数据，不纳入版本控制）
-sessions/*
-!sessions/README.md
+# 个人研究记录（不纳入版本控制）
+workspace/topics/
+workspace/research/
+workspace/discussions/
+workspace/insights/
+workspace/sessions/
+workspace/.lock

@@ -1,44 +1,38 @@
-# Quinn · 商业与产品判断训练
+# Quinn
 
-让用户面对一个新问题时，主动找到影响选择的关键因素，并说明自己的选择在什么条件下成立。商业与产品共同构成练习情境。
+围绕 AI、Agent、AIGC 与 Token 经济的研究与策略思考伙伴：搜集资料、理解机制、学习方法、讨论解释并发现机会。AI 先整理必要材料，用户参与思考和观点形成。
 
-核心实现：**一个 Skill（business-judgment-practice，展示名 Quinn）+ 案例文件 + 训练记录**。多轮对话，关键位置停下等用户；先独立判断、再被一次具体挑战、再更新、再反馈。
+## 三个 Skill
 
-## 目录结构
+Quinn 由三个可独立使用的 Skill 组成，通过自然语言触发（无需显式指定技能名）：
 
-```text
-Quinn/
-  .claude/skills/business-judgment-practice/   # 实现（SKILL.md + references/）
-  .codex/skills/business-judgment-practice/    # 符号链接 → .claude 实现
-  cases/                                      # 题目（每题 brief.md + coach.md）
-  sessions/                                   # 训练记录（由 Skill 写入）
-  docs/                                       # 设计文档
-```
+| Skill | 用途 | 触发示例 |
+| --- | --- | --- |
+| `quinn-research` | 研究主题、整理链接、找资料、查证说法 | "帮我查一下按结果收费的案例" |
+| `quinn-explore` | 讨论商业逻辑、解释方法、分析想法 | "这个产品想法靠不靠谱？" |
+| `quinn-synthesize` | 整理讨论、总结专题、比较新旧认识 | "整理一下，今天到这里" |
 
-## 如何使用
+## 使用
 
-在支持的环境里调用 `business-judgment-practice` 这个 Skill，用自然语言表达意图：
+直接对话即可。典型流程：
 
-| 说 | 发生什么 |
-| --- | --- |
-| 今天练一下 | 续练或按索引选题 |
-| 今天练产品／商业判断 | 在对应主题中选题 |
-| 继续上次 | 读取未完成记录，继续缺失的步骤 |
-| 复盘最近的练习 | 对照初判与后续证据，给暂定能力描述 |
+- 给一个链接、只要求整理 → research 保存有来源的材料。
+- 带着材料想讨论 → explore；结束时说"整理一下" → synthesize。
+- 回顾已有专题 → synthesize；缺证据时给调查建议，不默认大范围搜索。
 
-## 四题启动包
+## 目录
 
-| ID | 情境 | 学习目标 | 关系 |
-| --- | --- | --- | --- |
-| case_001 | AI 报告服务中的人工交付 | 识别随客户量增加的人工投入，据此判断推进条件 | 商业基础题 |
-| case_004 | 软件实施与持续维护 | 新情境中识别随规模增长的交付投入 | 001 的延迟变式 |
-| case_005 | 用户要求增加看板 | 区分功能请求与实际任务，据此决定下一步 | 产品基础题 |
-| case_008 | 团队要求增加提醒 | 新情境中区分请求方案与实际协作障碍 | 005 的延迟变式 |
+- `skills/` —— 三个 Skill 的规范源（`.claude/skills` 与 `.codex/skills` 均符号链接到这里）。
+- `shared/contracts.md` —— 数据契约（字段、归属、证据、来源规则）。
+- `shared/methods/` —— 方法参考（按需读取）。
+- `scripts/workspace.py` —— 文件操作脚本（创建/读取/更新/查找/校验）。
+- `workspace/` —— 持久化目录（研究、讨论、认识、专题、会话；个人记录不入库，见 `workspace/README.md`）。
+- `docs/` —— 设计文档。
 
-六维（商业逻辑、成本、风险、利润、用户问题、方案取舍）仅作内容标签；四题只验证两类关系，不宣称覆盖全部能力。
+## 依赖
 
-## 本轮不实现
+Python 3 + PyYAML（`pip install pyyaml`），仅 `scripts/workspace.py` 需要。
 
-八题全覆盖、动态课程、独立产品 Skill、数据库、Graph Runtime、独立 LLM 服务、自动报告、自动等级升级、定时推送、自定义 CLI。
+## 参考
 
-设计文档：`docs/Quinn-MVP-Implementation-Plan-v4.md`
+设计与验收标准：`docs/Quinn-Research-Strategy-Implementation-Plan.md`
