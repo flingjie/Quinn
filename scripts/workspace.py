@@ -16,8 +16,8 @@
     python3 scripts/workspace.py selftest
 
 payload 为 YAML/JSON 文件路径（`-` 或省略则读 stdin）。payload 中保留键 `body`
-为 Markdown 正文，其余键写入 frontmatter。`update` 省略 payload 表示只改正文，
-`body` 省略表示保留原正文。
+为 Markdown 正文，其余键写入 frontmatter。`update` 时其余键改 frontmatter、
+`body` 键改正文（省略 `body` 保留原正文）；省略整个 payload 则不修改任何字段。
 
 依赖：Python 3 标准库 + PyYAML（`pip install pyyaml`）。
 """
@@ -56,6 +56,7 @@ USER_STANCES = {"accepted", "partial", "withheld", "rejected", "unexpressed"}
 EVIDENCE_RELATIONS = {"supports", "contradicts", "limits", "inconclusive"}
 OPEN_QUESTION_STATUSES = {"exploring", "waiting", "settled"}
 SESSION_STATUSES = {"active", "paused", "completed", "save_failed"}
+ACCESS_STATUSES = {"ok", "partial", "failed"}
 
 # 脚本自管的公共字段，payload 不得提供
 RESERVED_FIELDS = {"id", "schema_version", "revision", "created_at", "updated_at"}
@@ -81,7 +82,7 @@ def _kind_dir(kind: str) -> str:
 
 
 def _check_id(record_id: str) -> str:
-    if not isinstance(record_id, str) or not _ID_RE.match(record_id) or record_id in (".", ".."):
+    if not isinstance(record_id, str) or not _ID_RE.match(record_id):
         raise ValueError(f"非法记录 ID: {record_id!r}")
     return record_id
 
@@ -133,6 +134,40 @@ def _record_path(record_id: str):
     return None, None
 
 
+def _evidence_refs(fm: dict) -> list[dict]:
+    """收集 evidence_refs 与 history[].evidence_refs 中的证据引用条目。"""
+    refs: list[dict] = []
+    ev = fm.get("evidence_refs") or []
+    if isinstance(ev, list):
+        refs += [e for e in ev if isinstance(e, dict)]
+    for h in fm.get("history") or []:
+        if isinstance(h, dict):
+            hev = h.get("evidence_refs") or []
+            if isinstance(hev, list):
+                refs += [e for e in hev if isinstance(e, dict)]
+    return refs
+
+
+def _referenced_ids(fm: dict) -> set[str]:
+    """收集 frontmatter 引用的记录 ID（topic/record/research/证据）。"""
+    refs: set[str] = set()
+    for field in ("topic_ids", "record_ids", "research_ids"):
+        v = fm.get(field) or []
+        if isinstance(v, list):
+            refs.update(x for x in v if isinstance(x, str))
+    for ref in _evidence_refs(fm):
+        if ref.get("record_id"):
+            refs.add(ref["record_id"])
+    return refs
+
+
+def _check_references(fm: dict) -> None:
+    """写约束：不得引用尚不存在的记录（引用记录先落盘，再写引用方）。"""
+    for ref in sorted(_referenced_ids(fm)):
+        if not _record_path(ref)[0]:
+            raise ValueError(f"引用不存在的记录 {ref!r}（先落盘该记录，再引用）")
+
+
 @contextlib.contextmanager
 def _locked():
     """工作区级写锁，串行化"版本检查→替换"区间。"""
@@ -159,13 +194,43 @@ def _atomic_write(path: str, text: str) -> None:
     os.replace(tmp, path)
 
 
-def _validate_frontmatter(fm: dict, kind: str) -> None:
+def _collect_issues(fm: dict, kind: str) -> list[str]:
+    """对单个 frontmatter 做枚举与归属校验，返回问题列表（无记录前缀）。"""
+    issues: list[str] = []
     attr = fm.get("attribution")
     if attr is not None and attr not in ATTRIBUTIONS:
-        raise ValueError(f"非法 attribution: {attr!r}（可选 {sorted(ATTRIBUTIONS)}）")
+        issues.append(f"非法 attribution: {attr!r}（可选 {sorted(ATTRIBUTIONS)}）")
     stance = fm.get("user_stance")
     if stance is not None and stance not in USER_STANCES:
-        raise ValueError(f"非法 user_stance: {stance!r}（可选 {sorted(USER_STANCES)}）")
+        issues.append(f"非法 user_stance: {stance!r}（可选 {sorted(USER_STANCES)}）")
+    if stance in ("accepted", "partial", "withheld", "rejected"):
+        history = fm.get("history") or []
+        if not any(isinstance(h, dict) and h.get("user_quote") for h in history):
+            issues.append(f"user_stance={stance} 但 history 缺少 user_quote（表态需原话依据，防默认接受）")
+    if kind == "sessions":
+        status = fm.get("status")
+        if status is not None and status not in SESSION_STATUSES:
+            issues.append(f"非法 status: {status!r}（可选 {sorted(SESSION_STATUSES)}）")
+    for oq in fm.get("open_questions") or []:
+        if isinstance(oq, dict):
+            st = oq.get("status")
+            if st is not None and st not in OPEN_QUESTION_STATUSES:
+                issues.append(f"非法 open_question.status: {st!r}（可选 {sorted(OPEN_QUESTION_STATUSES)}）")
+    for s in fm.get("sources") or []:
+        if isinstance(s, dict):
+            acc = s.get("access_status")
+            if acc is not None and acc not in ACCESS_STATUSES:
+                issues.append(f"非法 access_status: {acc!r}（可选 {sorted(ACCESS_STATUSES)}）")
+    for ref in _evidence_refs(fm):
+        if "relation" in ref and ref["relation"] not in EVIDENCE_RELATIONS:
+            issues.append(f"非法 evidence relation: {ref['relation']!r}（可选 {sorted(EVIDENCE_RELATIONS)}）")
+    return issues
+
+
+def _validate_frontmatter(fm: dict, kind: str) -> None:
+    issues = _collect_issues(fm, kind)
+    if issues:
+        raise ValueError("；".join(issues))
 
 
 # --------------------------------------------------------------------------- #
@@ -191,6 +256,7 @@ def create_record(kind: str, payload: dict | None = None, body: str = "") -> str
     }
     fm.update(payload)
     _validate_frontmatter(fm, kind)
+    _check_references(fm)
     path = os.path.join(_kind_dir(kind), fm["id"] + ".md")
     with _locked():
         _atomic_write(path, _serialize(fm, body))
@@ -237,6 +303,7 @@ def update_record(record_id: str, expected_revision: int, payload: dict | None =
         fm["revision"] = cur["revision"] + 1
         fm["updated_at"] = _now()
         _validate_frontmatter(fm, cur["kind"])
+        _check_references(fm)
         _atomic_write(cur["path"], _serialize(fm, new_body))
     return fm["revision"]
 
@@ -294,6 +361,8 @@ def validate_workspace() -> dict:
             if not isinstance(fm, dict):
                 issues.append(f"[{kind}/{record_id}] frontmatter 缺失或非映射")
                 continue
+            if record_id in ids:
+                issues.append(f"[{kind}/{record_id}] 重复 ID（同一 id 出现在多个 kind，引用无法定位）")
             ids[record_id] = kind
             if fm.get("id") != record_id:
                 issues.append(f"[{kind}/{record_id}] id 与文件名不一致")
@@ -302,37 +371,29 @@ def validate_workspace() -> dict:
                     issues.append(f"[{kind}/{record_id}] 缺少公共字段 {field}")
             if not isinstance(fm.get("revision"), int) or fm.get("revision", 0) < 1:
                 issues.append(f"[{kind}/{record_id}] revision 非法")
-            attr = fm.get("attribution")
-            if attr is not None and attr not in ATTRIBUTIONS:
-                issues.append(f"[{kind}/{record_id}] 非法 attribution: {attr!r}")
-            stance = fm.get("user_stance")
-            if stance is not None and stance not in USER_STANCES:
-                issues.append(f"[{kind}/{record_id}] 非法 user_stance: {stance!r}")
-            if stance in ("accepted", "partial", "withheld", "rejected"):
-                history = fm.get("history") or []
-                has_quote = any(isinstance(h, dict) and h.get("user_quote") for h in history)
-                if not has_quote:
-                    issues.append(
-                        f"[{kind}/{record_id}] user_stance={stance} 但 history 缺少 user_quote（表态需有原话依据，防默认接受）"
-                    )
+            for msg in _collect_issues(fm, kind):
+                issues.append(f"[{kind}/{record_id}] {msg}")
     # 引用完整性
     for record_id, kind in ids.items():
         _, p = _record_path(record_id)
         with open(p, "r", encoding="utf-8") as f:
             fm, _ = _parse_file(f.read())
-        refs: list[str] = []
+        plain: list[str] = []
         for field in ("topic_ids", "record_ids", "research_ids"):
             v = fm.get(field) or []
             if isinstance(v, list):
-                refs += [x for x in v if isinstance(x, str)]
-        ev = fm.get("evidence_refs") or []
-        if isinstance(ev, list):
-            for e in ev:
-                if isinstance(e, dict) and e.get("record_id"):
-                    refs.append(e["record_id"])
-        for r in refs:
+                plain += [x for x in v if isinstance(x, str)]
+        for r in plain:
             if r not in ids:
                 issues.append(f"[{kind}/{record_id}] 引用不存在的记录 {r}")
+        for e in _evidence_refs(fm):
+            rid = e.get("record_id")
+            if not rid:
+                continue
+            if rid not in ids:
+                issues.append(f"[{kind}/{record_id}] 证据引用不存在的记录 {rid}")
+            elif ids.get(rid) != "research":
+                issues.append(f"[{kind}/{record_id}] 证据引用 {rid} 不是 research 记录（实际 {ids.get(rid)}）")
     return {"issues": issues, "summary": {"records": len(ids), "issues": len(issues)}}
 
 
@@ -489,26 +550,76 @@ def _selftest() -> int:
         found = find_records("自检", "topics")
         check("find_records", any(f["id"] == topic_id for f in found))
 
-        bad_insight = create_record(
+        try:
+            create_record(
+                "insights",
+                {
+                    "question": "自检坏认识",
+                    "explanation": "临时",
+                    "attribution": "assistant",
+                    "user_stance": "accepted",
+                    "evidence_refs": [],
+                    "boundaries": "临时",
+                    "open_questions": [],
+                    "history": [],
+                },
+            )
+            check("默认 accepted 缺 user_quote 被拒绝", False)
+        except ValueError:
+            check("默认 accepted 缺 user_quote 被拒绝", True)
+
+        try:
+            create_record(
+                "research",
+                {"question": "自检坏引用", "topic_ids": ["does-not-exist"], "sources": [], "claims": [], "disagreements": [], "unknowns": [], "coverage": ""},
+            )
+            check("引用不存在记录被拒绝", False)
+        except ValueError:
+            check("引用不存在记录被拒绝", True)
+
+        try:
+            create_record(
+                "insights",
+                {"attribution": "assistant", "user_stance": "unexpressed", "evidence_refs": [{"record_id": research_id, "source_id": "s1", "relation": "backsup"}]},
+            )
+            check("非法 evidence relation 被拒绝", False)
+        except ValueError:
+            check("非法 evidence relation 被拒绝", True)
+
+        try:
+            create_record("sessions", {"mode": "research", "status": "running", "next_step": ""})
+            check("非法 session status 被拒绝", False)
+        except ValueError:
+            check("非法 session status 被拒绝", True)
+
+        try:
+            create_record(
+                "research",
+                {"question": "自检坏来源", "sources": [{"source_id": "s1", "access_status": "broken"}], "claims": [], "disagreements": [], "unknowns": [], "coverage": ""},
+            )
+            check("非法 access_status 被拒绝", False)
+        except ValueError:
+            check("非法 access_status 被拒绝", True)
+
+        quoted_insight = create_record(
             "insights",
             {
-                "question": "自检坏认识",
+                "question": "自检表态认识",
                 "explanation": "临时",
                 "attribution": "assistant",
-                "user_stance": "accepted",
-                "evidence_refs": [],
+                "user_stance": "partial",
+                "evidence_refs": [{"record_id": research_id, "source_id": "s1", "relation": "supports"}],
                 "boundaries": "临时",
                 "open_questions": [],
-                "history": [],
+                "history": [{"at": "2026-09-11T00:00:00+00:00", "change": "首次", "reason": "自检", "user_quote": "部分认可"}],
             },
         )
-        created.append(bad_insight)
+        created.append(quoted_insight)
+        check("带 user_quote 的 partial 被接受", quoted_insight)
 
         report = validate_workspace()
-        bad_issues = [i for i in report["issues"] if bad_insight in i]
-        other_issues = [i for i in report["issues"] if bad_insight not in i]
-        check("默认 accepted 被校验标记", any("user_quote" in i for i in bad_issues))
-        check("其余记录无自检问题", not other_issues)
+        self_issues = [i for i in report["issues"] if any(f"/{rid}]" in i for rid in created)]
+        check("自检产生的记录无校验问题", not self_issues)
     finally:
         for record_id in created:
             _, p = _record_path(record_id)

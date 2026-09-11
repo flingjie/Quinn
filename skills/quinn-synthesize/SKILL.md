@@ -20,9 +20,9 @@ description: 整理讨论成果、总结专题、比较新旧认识、回顾观�
 
 ## 归属硬规则（shared/contracts.md §4、§7）
 
-- AI 提议不得经默认值变成 accepted；`attribution=assistant` 时 `user_stance` 必须为 `unexpressed` 或省略。
+- AI 提议不得经默认值变成 accepted；无用户明确表态时 `user_stance` 保持 `unexpressed`。
+- 用户明确表态（`accepted`/`partial`/`withheld`/`rejected`）时，须在 `history[].user_quote` 保留原话作为依据，关键表态原文不可被摘要覆盖。
 - 归属不清时保持 `assistant`；只有归属影响具体输出且无法从原文判断时才问一句。
-- 关键用户表态原文不可被摘要覆盖，须保留在 `history[].user_quote`。
 
 ## 持久化
 
@@ -33,10 +33,11 @@ cat > /tmp/quinn-insight.yaml <<'EOF'
 question: "<认识回答的问题>"
 explanation: "<当前解释>"
 attribution: assistant          # source_author / assistant / user
-user_stance: unexpressed        # 仅 attribution=user 时用 accepted/partial/withheld/rejected
+user_stance: unexpressed        # accepted/partial/withheld/rejected 需 history[].user_quote 依据
 evidence_refs:
   - record_id: "<研究记录ID>"
     source_id: "<该记录内的 source_id>"
+    relation: supports          # supports / contradicts / limits / inconclusive（可选）
 boundaries: "<边界与适用条件>"
 open_questions:
   - question: "<开放问题>"

@@ -189,8 +189,8 @@ id、schema_version、revision、created_at、updated_at。时间统一存带时
 
 | 对象 | 关键字段 |
 | --- | --- |
-| Topic | title、aliases、scope、record_ids、summary |
-| Research | question、topic_ids、sources、claims、disagreements、unknowns、coverage |
+| Topic | title、aliases、scope、record_ids、summary、open_questions |
+| Research | question、topic_ids、sources、claims、disagreements、unknowns、coverage、discussion_directions |
 | Discussion | question、research_ids、turns、explanations、methods_used、opportunities |
 | Insight | question、explanation、attribution、user_stance、evidence_refs、boundaries、open_questions、history |
 | Session | mode、topic_ids、record_ids、status、next_step |
@@ -207,7 +207,7 @@ research 写研究记录；explore 写讨论原文与分析；synthesize 写认�
 
 ## 9. 最小辅助接口与恢复
 
-以下为未来脚本接口约定，不表示命令已存在：
+以下接口已由 `scripts/workspace.py` 实现（`python3 scripts/workspace.py --help` 查看用法）：
 
 | 函数 | 行为 |
 | --- | --- |

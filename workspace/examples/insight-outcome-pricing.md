@@ -11,6 +11,7 @@ user_stance: partial
 evidence_refs:
   - record_id: research-outcome-pricing
     source_id: s1
+    relation: supports
 boundaries: "仅针对能明确归因到产品的任务；通用助手类难以按结果收费。"
 open_questions:
   - question: "客户付费意愿如何？"
@@ -24,6 +25,7 @@ history:
     evidence_refs:
       - record_id: research-outcome-pricing
         source_id: s1
+        relation: supports
     user_quote: "我认可结果可验收的重要性，对客户付费意愿仍持保留态度。"
 ---
 
@@ -33,3 +35,4 @@ history:
 
 - `attribution=assistant` + `user_stance=partial`：解释由 AI 提出，用户明确部分认可。
 - 用户原话保留在 `history[].user_quote`，作为 `partial` 的证据，防止默认接受。
+- `evidence_refs[].relation` 记录该证据对解释的关系（supports/contradicts/limits/inconclusive）。

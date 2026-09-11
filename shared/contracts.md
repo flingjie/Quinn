@@ -101,7 +101,7 @@
 
 ## 5. 证据引用与来源
 
-- `EvidenceRef` = `{ record_id: string, source_id: string }`。`record_id` 指向 research 记录，`source_id` 是该记录 `sources` 列表内的条目 id。证据引用不自动推出用户态度。
+- `EvidenceRef` = `{ record_id: string, source_id: string, relation?: string }`。`record_id` 指向 research 记录，`source_id` 是该记录 `sources` 列表内的条目 id；`relation`（可选）为该证据对解释的关系，取值见下方"新证据对解释的关系"。证据引用不自动推出用户态度。
 - `Source` 字段：`source_id`、`url`、`title`、`author`（可得时）、`published_at`（可得时）、`accessed_at`、`access_status`（`ok` / `partial` / `failed`）、`summary`。
 - 来源摘要存短摘录或释义，**不默认存整篇版权内容**。同源转发不算独立支持；同一 URL 的时间变化保留观察版本。
 
