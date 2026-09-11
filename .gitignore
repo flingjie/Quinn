@@ -1,11 +1,9 @@
 # macOS
 .DS_Store
 
-# 平台本地配置（保留 skills 以追踪规范源与薄入口）
-.claude/*
-!.claude/skills/
-.codex/*
-!.codex/skills/
+# 平台本地配置
+.claude/
+.codex/
 
 # 训练记录（个人练习数据，不纳入版本控制）
 sessions/*
