@@ -1,24 +1,31 @@
 # Quinn
 
-围绕 AI、Agent、AIGC 与 Token 经济的研究与策略思考伙伴：搜集资料、理解机制、学习方法、讨论解释并发现机会。AI 先整理必要材料，用户参与思考和观点形成。
+从真实困惑出发的探索伙伴：接触不同解释与跨领域机制，共同形成新理解、开放问题和可选机会。默认从探索开始；需要事实时再研究；结束时保存真实发生的理解变化。
+
+AI 是主要应用落点，也允许完全非 AI 的探索。跨领域、前提反转、机制重组是手段，不为了展示方法强行使用。
 
 ## 三个 Skill
 
-Quinn 由三个可独立使用的 Skill 组成，通过自然语言触发（无需显式指定技能名）：
+通过自然语言触发（无需显式指定技能名）：
 
 | Skill | 用途 | 触发示例 |
 | --- | --- | --- |
-| `quinn-research` | 研究主题、整理链接、找资料、查证说法 | "帮我查一下按结果收费的案例" |
-| `quinn-explore` | 讨论商业逻辑、解释方法、分析想法 | "这个产品想法靠不靠谱？" |
-| `quinn-synthesize` | 整理讨论、总结专题、比较新旧认识 | "整理一下，今天到这里" |
+| `quinn-explore` | 理解困惑、给不同方向、共同迁移 | “帮我想想这个问题”“换个更远的角度” |
+| `quinn-research` | 查证事实、找机制与反例 | “依据是什么”“帮我核实这个说法” |
+| `quinn-synthesize` | 保存收获、恢复会话、对比理解 | “记下这个问题”“继续上次的……” |
 
 ## 使用
 
-直接对话即可。典型流程：
+直接对话即可。典型入口：
 
-- 给一个链接、只要求整理 → research 保存有来源的材料。
-- 带着材料想讨论 → explore；结束时说"整理一下" → synthesize。
-- 回顾已有专题 → synthesize；缺证据时给调查建议，不默认大范围搜索。
+- 输入一个困惑或项目问题 → explore 判断卡点，直接回答或给不同方向。
+- “给我一个值得想的问题” → 按显式兴趣找少量异常，核实后提供入口。
+- “换个更远的角度” → 扩大领域距离，保持与原问题关联。
+- 只缺事实 / “依据是什么” → research 查证后可直接结束，不强行跨域。
+- “记下这个问题” / “整理一下” → synthesize 保存同一份会话后结束。
+- “继续上次的……” → 读取相关会话，复述一句上下文后接着讨论。
+
+无需每次输出实验或走完固定流程。允许确认原判断、暂无变化或只有开放问题。
 
 ## 目录
 
@@ -26,8 +33,10 @@ Quinn 由三个可独立使用的 Skill 组成，通过自然语言触发（无�
 - `shared/contracts.md` —— 数据契约（字段、归属、证据、来源规则）。
 - `shared/methods/` —— 方法参考（按需读取）。
 - `scripts/workspace.py` —— 文件操作脚本（创建/读取/更新/查找/校验）。
-- `workspace/` —— 持久化目录（研究、讨论、认识、专题、会话；个人记录不入库，见 `workspace/README.md`）。
+- `workspace/` —— 持久化目录（会话为主；研究按需；个人记录不入库，见 `workspace/README.md`）。
+- `evals/` —— 行为场景与试用对照。
 - `docs/` —— 设计文档。
+- `AGENTS.md` —— Agent 行为总则。
 
 ## 依赖
 
@@ -35,4 +44,5 @@ Python 3 + PyYAML（`pip install pyyaml`），仅 `scripts/workspace.py` 需要�
 
 ## 参考
 
-设计与验收标准：`docs/Quinn-Research-Strategy-Implementation-Plan.md`
+现行基线：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
+历史方案：`docs/Quinn-Research-Strategy-Implementation-Plan.md`

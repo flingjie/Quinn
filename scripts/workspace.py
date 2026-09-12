@@ -55,7 +55,20 @@ ATTRIBUTIONS = {"source_author", "assistant", "user"}
 USER_STANCES = {"accepted", "partial", "withheld", "rejected", "unexpressed"}
 EVIDENCE_RELATIONS = {"supports", "contradicts", "limits", "inconclusive"}
 OPEN_QUESTION_STATUSES = {"exploring", "waiting", "settled"}
-SESSION_STATUSES = {"active", "paused", "completed", "save_failed"}
+SESSION_STATUSES = {
+    "exploring",
+    "paused",
+    "closed",
+    "active",
+    "completed",
+    "save_failed",
+}
+CHANGE_STATUSES = {
+    "expressed",
+    "original_confirmed",
+    "no_change",
+    "unconfirmed",
+}
 ACCESS_STATUSES = {"ok", "partial", "failed"}
 
 # 脚本自管的公共字段，payload 不得提供
@@ -211,6 +224,11 @@ def _collect_issues(fm: dict, kind: str) -> list[str]:
         status = fm.get("status")
         if status is not None and status not in SESSION_STATUSES:
             issues.append(f"非法 status: {status!r}（可选 {sorted(SESSION_STATUSES)}）")
+        change_status = fm.get("change_status")
+        if change_status is not None and change_status not in CHANGE_STATUSES:
+            issues.append(
+                f"非法 change_status: {change_status!r}（可选 {sorted(CHANGE_STATUSES)}）"
+            )
     for oq in fm.get("open_questions") or []:
         if isinstance(oq, dict):
             st = oq.get("status")
@@ -309,7 +327,7 @@ def update_record(record_id: str, expected_revision: int, payload: dict | None =
 
 
 def find_records(query: str, kind: str | None = None) -> list[dict]:
-    """元数据及正文全文查找候选，返回 [{id, kind, title, path}]。"""
+    """元数据及正文全文查找候选，返回 [{id, kind, title, path, updated_at}]。"""
     if kind is not None and kind not in KINDS:
         raise ValueError(f"未知记录类型: {kind!r}（可选 {KINDS}）")
     kinds = [kind] if kind else list(KINDS)
@@ -332,9 +350,19 @@ def find_records(query: str, kind: str | None = None) -> list[dict]:
                 continue
             fm, _ = _parse_file(text)
             title = ""
+            updated_at = ""
             if isinstance(fm, dict):
-                title = fm.get("title") or fm.get("question") or ""
-            results.append({"id": name[:-3], "kind": k, "title": title, "path": p})
+                title = fm.get("title") or fm.get("topic") or fm.get("question") or ""
+                updated_at = fm.get("updated_at") or ""
+            results.append(
+                {
+                    "id": name[:-3],
+                    "kind": k,
+                    "title": title,
+                    "path": p,
+                    "updated_at": updated_at,
+                }
+            )
     return results
 
 
@@ -524,10 +552,27 @@ def _selftest() -> int:
         check("create insights", insight_id)
 
         session_id = create_record(
-            "sessions", {"mode": "research", "topic_ids": [topic_id], "record_ids": [research_id], "status": "active", "next_step": "自检"}
+            "sessions",
+            {
+                "mode": "explore",
+                "topic": "自检探索",
+                "topic_ids": [topic_id],
+                "record_ids": [research_id],
+                "research_ids": [research_id],
+                "status": "exploring",
+                "change_status": "unconfirmed",
+                "next_step": "自检",
+            },
         )
         created.append(session_id)
         check("create sessions", session_id)
+
+        legacy_session = create_record(
+            "sessions",
+            {"mode": "research", "topic_ids": [], "record_ids": [], "status": "completed", "next_step": "旧状态兼容"},
+        )
+        created.append(legacy_session)
+        check("create sessions 旧 status=completed", legacy_session)
 
         rec = read_record(research_id)
         check("read_record", rec["revision"] == 1 and rec["body"] == "研究正文")
@@ -549,6 +594,16 @@ def _selftest() -> int:
 
         found = find_records("自检", "topics")
         check("find_records", any(f["id"] == topic_id for f in found))
+
+        found_sessions = find_records("自检探索", "sessions")
+        hit = next((f for f in found_sessions if f["id"] == session_id), None)
+        check("find_records 含 updated_at 与 topic", bool(hit and hit.get("updated_at") and hit.get("title") == "自检探索"))
+
+        try:
+            create_record("sessions", {"mode": "explore", "status": "exploring", "change_status": "maybe"})
+            check("非法 change_status 被拒绝", False)
+        except ValueError:
+            check("非法 change_status 被拒绝", True)
 
         try:
             create_record(
