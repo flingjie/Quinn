@@ -11,7 +11,7 @@
     python3 scripts/workspace.py create <kind> [payload]
     python3 scripts/workspace.py read <id>
     python3 scripts/workspace.py update <id> <revision> [payload]
-    python3 scripts/workspace.py find <query> [kind]
+    python3 scripts/workspace.py find <query> [kind] [--since YYYY-MM-DD] [--until YYYY-MM-DD]
     python3 scripts/workspace.py validate
     python3 scripts/workspace.py selftest
 
@@ -31,7 +31,7 @@ import os
 import re
 import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 try:
     import yaml
@@ -326,12 +326,25 @@ def update_record(record_id: str, expected_revision: int, payload: dict | None =
     return fm["revision"]
 
 
-def find_records(query: str, kind: str | None = None) -> list[dict]:
-    """元数据及正文全文查找候选，返回 [{id, kind, title, path, updated_at}]。"""
+def find_records(
+    query: str,
+    kind: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict]:
+    """元数据及正文全文查找候选，返回 [{id, kind, title, path, updated_at}]。
+
+    `since`/`until` 为可选日期过滤（`YYYY-MM-DD` 或 ISO），按 `updated_at` 的日期
+    部分（前 10 位）是否落在闭区间内筛选；缺日期字段的记录在启用过滤时被跳过。
+    """
     if kind is not None and kind not in KINDS:
         raise ValueError(f"未知记录类型: {kind!r}（可选 {KINDS}）")
     kinds = [kind] if kind else list(KINDS)
     q = (query or "").strip().lower()
+    since_d = (since or "").strip()[:10] or None
+    until_d = (until or "").strip()[:10] or None
+    if since_d and until_d and since_d > until_d:
+        raise ValueError(f"日期区间无效: since={since_d} 晚于 until={until_d}")
     results = []
     for k in kinds:
         d = _kind_dir(k)
@@ -354,6 +367,14 @@ def find_records(query: str, kind: str | None = None) -> list[dict]:
             if isinstance(fm, dict):
                 title = fm.get("title") or fm.get("topic") or fm.get("question") or ""
                 updated_at = fm.get("updated_at") or ""
+            if since_d or until_d:
+                day = updated_at[:10]
+                if not day:
+                    continue
+                if since_d and day < since_d:
+                    continue
+                if until_d and day > until_d:
+                    continue
             results.append(
                 {
                     "id": name[:-3],
@@ -470,6 +491,8 @@ def main(argv: list[str]) -> int:
     p = sub.add_parser("find", help="全文查找记录")
     p.add_argument("query")
     p.add_argument("kind", nargs="?", choices=KINDS)
+    p.add_argument("--since", help="只返回 updated_at 日期 >= 此值（YYYY-MM-DD 或 ISO）")
+    p.add_argument("--until", help="只返回 updated_at 日期 <= 此值（YYYY-MM-DD 或 ISO）")
 
     sub.add_parser("validate", help="校验工作区结构、引用与归属")
     sub.add_parser("selftest", help="运行自检（创建/读/更新/冲突/校验）")
@@ -488,7 +511,7 @@ def main(argv: list[str]) -> int:
             new_rev = update_record(args.id, args.revision, payload, body)
             _print_json({"id": args.id, "revision": new_rev})
         elif args.cmd == "find":
-            _print_json(find_records(args.query, args.kind))
+            _print_json(find_records(args.query, args.kind, args.since, args.until))
         elif args.cmd == "validate":
             _print_json(validate_workspace())
         elif args.cmd == "selftest":
@@ -598,6 +621,18 @@ def _selftest() -> int:
         found_sessions = find_records("自检探索", "sessions")
         hit = next((f for f in found_sessions if f["id"] == session_id), None)
         check("find_records 含 updated_at 与 topic", bool(hit and hit.get("updated_at") and hit.get("title") == "自检探索"))
+
+        today = datetime.now(timezone.utc).date().isoformat()
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+        found_since = find_records("自检探索", "sessions", since=today)
+        check("find 日期过滤 since=今天 包含", any(f["id"] == session_id for f in found_since))
+        found_until = find_records("自检探索", "sessions", until=yesterday)
+        check("find 日期过滤 until=昨天 排除", not any(f["id"] == session_id for f in found_until))
+        try:
+            find_records("自检探索", "sessions", since="2026-09-30", until="2026-09-01")
+            check("find 无效日期区间被拒绝", False)
+        except ValueError:
+            check("find 无效日期区间被拒绝", True)
 
         try:
             create_record("sessions", {"mode": "explore", "status": "exploring", "change_status": "maybe"})

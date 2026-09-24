@@ -84,6 +84,17 @@
 
 正文按需小节见 `skills/quinn-synthesize/references/session-format.md`。
 
+### 周期性回看（session 用法）
+
+回看是 `quinn-synthesize` 的按需用法，**不是新 kind**，复用 session 记录：
+
+- `mode: synthesize`；`topic` 以「回看」开头并含日期范围（如 `回看 2026-07-01~2026-09-30：<主题>`）。
+- `record_ids` 复用为**源会话 ID**列表（沿用引用完整性校验，源会话需先存在）。
+- 新增**可选**字段 `period_start` / `period_end`（`YYYY-MM-DD`），仅回看记录填写；普通 session 不写，向后兼容，不升 `schema_version`。
+- `status` / `change_status` 沿用现有枚举：`draft≈exploring`、`discussed≈paused`、`closed`；status 不代表结论正确。
+- 归属三分类不变：已有记录中的用户表达 / 外部可核查事实 / Quinn 候选解释；AI 提议不得经默认值变成用户已接受。
+- 正文小节见 `skills/quinn-synthesize/references/session-format.md`「回看记录」。
+
 ## 4. 归属与态度枚举
 
 `attribution`（谁提出的解释）：
