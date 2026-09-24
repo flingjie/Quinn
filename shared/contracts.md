@@ -103,6 +103,7 @@
 > - 用户明确表态（`accepted`/`partial`/`withheld`/`rejected`）时，须在 `history[].user_quote` 保留原话作为依据，否则视为缺证据。
 > - 归属不清时一律保留 `assistant`；只有归属会影响具体输出且无法从原文判断时，才向用户问一句。
 > - Session 正文中的「当前理解」必须区分用户表达与 Quinn 候选总结。
+> - 框架转换只产生 `candidate_reframe`，记入 session 正文，与用户已确认内容分开，不自动成为用户立场。
 
 ## 5. 证据引用与来源
 

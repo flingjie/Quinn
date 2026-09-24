@@ -63,6 +63,12 @@
 | 科学机制被用于商业 | 区分原领域依据和目标迁移假设 | evidence-guide + exploration-guide |
 | 用户只想保存问题 | 保存后结束，不强制计划 | synthesize 支持 closed 短保存 |
 | 用户没有表示理解变化 | 记为尚未确认，不制造学习成果 | A：`change_status: unconfirmed` |
+| 用户表达绝对判断 | 可用反例或改变尺度检查，但不为了反对而反对 | reframing-operators.md 已写入 |
+| 用户使用模糊抽象词 | 重新定义或向下归类，直到能说明差异或停止 | reframing-operators.md 已写入 |
+| 新说法更积极但没有新预测 | 丢弃候选重构，不记录为理解变化 | reframing-operators.md 已写入 |
+| 重构产生事实或因果主张 | 转入 research 查证，无法核实时保留为假设 | reframing-operators.md 已写入 |
+| 价值标准发生冲突 | 暴露准则层次，由用户确认优先级，不替用户决定 | reframing-operators.md 已写入 |
+| 连续多个语言模式都可使用 | 只选最能改变下一步的一个，整次最多两个 | reframing-operators.md 已写入 |
 | 来源不可读或冲突 | 明确缺口，不伪造正文或确定结论 | B research：`access_status: failed`，未伪造数字 |
 | 恢复、重复保存、冲突 | 方向准确、记录不重复、冲突不覆盖 | P2：同一 session update；selftest 覆盖冲突 |
 
@@ -99,6 +105,30 @@
 - `workspace/profile.md` 已写入显式兴趣（Agent 信任/控制权；协作节奏）与“不要强行跨域”，带来源日志；无能力/性格推断。
 - 主动选题协议：synthesize 读 profile + `find` 近期 sessions，避免重复 A 的授权阶梯结论或只推 AI；异常需核实后交 explore。
 - 开放问题回访：从 session A 选取一个开放问题引入新线索；不重放旧总结（协议已写入 `quinn-synthesize`）。
+
+## 框架转换试用记录（v3 验收）
+
+对三个真实困惑跑框架转换（`reframing-operators.md`），验收「该触发就触发、不该触发不硬套」。
+
+### A（开放探索，现象无法解释）
+
+- 框架转换：**跳过**。卡点=现象无法解释，不在「过度抽象 / 绝对化 / 目标冲突 / 尺度太窄」四类内，直接给三颗种子（授权阶梯 / 责任锚点 / 决策成本），不硬套算子。
+- 隐含判断「手动确认=不信任」（X 是 Y）仅作内部可纠正标记，未向用户暴露。
+- session `a3b5f653e08d46f094209448de4c23ea`，`change_status=unconfirmed`。
+
+### B（事实缺口）
+
+- 框架转换：**跳过**。卡点=缺事实，按「何时使用」直接转 research 最低核查，未硬塞重新定义 / 改变尺度。
+- 来源两次检索均不可用 → 标 `access_status: failed`，不伪造数字。
+- research `bdce43a75b3347f7982c5063244a82f3`，session `9a17b103583f47eb9a13b14ed2701791`，`change_status=no_change`。
+
+### C（目标冲突，非 AI 协作）
+
+- 框架转换：**触发**。识别「应该砍议题 vs 应该改异步」两个规范判断 → 选「准则层次」算子 → 过证据闸门（明确「信息同步 vs 讨论质量」的评价标准）。
+- 留在协作域，未跨域，未暴露算子术语，未替用户决定优先级。
+- session `f5ed768bf85f478cb5d4dbd3572722e4`，`change_status=unconfirmed`。
+
+验收结论：三例中框架转换只在目标冲突（C）触发，且产出可检验的标准差异而非换措辞；事实缺口（B）与现象无法解释（A）正确跳过，未硬套。与方案 §3.2 / §5 / §10 一致。
 
 ## 硬性失败监控
 
