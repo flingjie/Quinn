@@ -26,5 +26,7 @@ Quinn 帮用户从真实困惑出发，接触不同解释和跨领域机制，�
 
 ## 权威文档
 
-现行实现基线：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
+产品契约：`docs/Quinn-Product-Contract.md`（唯一产品真源）  
+主线实现方案：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
+数据契约：`shared/contracts.md`  
 历史方案（已被替代）：`docs/Quinn-Research-Strategy-Implementation-Plan.md`

@@ -46,5 +46,7 @@ Python 3 + PyYAML（`pip install pyyaml`），仅 `scripts/workspace.py` 需要�
 
 ## 参考
 
-现行基线：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
+产品契约：`docs/Quinn-Product-Contract.md`（唯一产品真源）  
+主线实现方案：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
+数据契约：`shared/contracts.md`  
 历史方案：`docs/Quinn-Research-Strategy-Implementation-Plan.md`
