@@ -82,7 +82,7 @@
 
 `change_status`：`expressed`（用户已表达变化）/ `original_confirmed`（确认原判断）/ `no_change`（暂无变化）/ `unconfirmed`（尚未确认）。兴奋或继续追问不是理解提升的证据。
 
-正文按需小节见 `skills/quinn-synthesize/references/session-format.md`。
+正文按需小节见 `skills/quinn-synthesize/references/session-format.md`（含可选的目标与取舍、假设与验证动作、用户自述背景、行动复盘小节；均 body 层，不加 frontmatter、不升 `schema_version`）。
 
 ### 周期性回看（session 用法）
 
