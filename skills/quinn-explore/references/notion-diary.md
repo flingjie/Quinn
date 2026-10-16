@@ -20,7 +20,7 @@ python3 scripts/notion.py read <block_id>
 python3 scripts/notion.py doctor
 ```
 
-- 凭据 `NOTION_API_KEY` 读环境变量或仓库根 `.env`；`notes_page_id` / `lookback_days` 读 `workspace/config.md`。
+- 凭据 `NOTION_API_KEY` 读环境变量或仓库根 `.env`；`notion_notes_page_id` / `notion_lookback_days` 读 `workspace/config.md`。
 - `list-diary` 返回字段：`block_id`、`title`、`created_at`、`page_id`、`url`。
 
 ## 材料归属

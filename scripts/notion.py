@@ -100,6 +100,8 @@ class NotionClient:
             if not resp.get("has_more"):
                 break
             cursor = resp.get("next_cursor")
+            if not cursor:
+                break
         return blocks
 
 
