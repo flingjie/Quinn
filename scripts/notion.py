@@ -191,19 +191,112 @@ def _print_json(obj):
     print(json.dumps(obj, ensure_ascii=False, indent=2))
 
 
+def discover_page_ids(client, notes_page_id):
+    """递归发现 notes_page_id 下所有 child_page（年份页 + 月度页）。"""
+    seen = set()
+    queue = [notes_page_id]
+    pages = []
+    while queue:
+        page_id = queue.pop(0)
+        if page_id in seen:
+            continue
+        seen.add(page_id)
+        for block in client.list_all_block_children(page_id):
+            if block.get("type") != "child_page":
+                continue
+            child_id = block.get("id")
+            if child_id and child_id not in seen:
+                pages.append(child_id)
+                queue.append(child_id)
+    return pages
+
+
+def _parse_iso(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+
+def list_diary(client, notes_page_id, days, now=None):
+    """收集所有日记 toggle 块，按 created_time 过滤最近 days 天，输出列表。"""
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+    entries = []
+    for page_id in discover_page_ids(client, notes_page_id):
+        for block in client.list_all_block_children(page_id):
+            if block.get("type") != "toggle":
+                continue
+            created = _parse_iso(block.get("created_time"))
+            if created is None or created < cutoff:
+                continue
+            entries.append({
+                "block_id": block.get("id"),
+                "title": block_plain_text(block),
+                "created_at": block.get("created_time", ""),
+                "page_id": page_id,
+                "url": f"https://www.notion.so/{page_id}",
+            })
+    entries.sort(key=lambda e: e["created_at"])
+    return entries
+
+def read_entry(client, block_id, with_discussion=False):
+    """读一条日记的正文；默认剥掉 Finch 讨论记录区。"""
+    children = client.list_all_block_children(block_id)
+    if with_discussion:
+        return flatten_blocks(children)
+    return user_region_text(children)
+
+def doctor(client, notes_page_id):
+    """只读核对 notes_page_id 可访问性，返回发现的页面数。"""
+    pages = discover_page_ids(client, notes_page_id)
+    return {"ok": True, "notes_page_id": notes_page_id, "pages": len(pages)}
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="notion.py", description="Quinn 只读 Notion 日记读取")
     sub = parser.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("selftest", help="离线自检")
+
+    p = sub.add_parser("list-diary", help="列出最近 N 天日记 toggle 块（JSON）")
+    p.add_argument("--days", type=int, default=None, help="覆盖 config 的 lookback 天数")
+
+    p = sub.add_parser("read", help="读一条日记正文（纯文本）")
+    p.add_argument("block_id")
+    p.add_argument("--with-discussion", action="store_true", help="包含 Finch 讨论记录区")
+
+    sub.add_parser("doctor", help="核对 Notes 容器可访问性（只读）")
+    sub.add_parser("selftest", help="离线自检（发现/过滤/剥除）")
+
     args = parser.parse_args(argv)
-    if args.cmd == "selftest":
-        return _selftest()
+
+    try:
+        if args.cmd == "selftest":
+            return _selftest()
+        api_key, notes_page_id, lookback_days = notion_config()
+        client = NotionClient(api_key=api_key)
+        if args.cmd == "list-diary":
+            days = args.days if args.days is not None else lookback_days
+            _print_json(list_diary(client, notes_page_id, days))
+        elif args.cmd == "read":
+            print(read_entry(client, args.block_id, args.with_discussion))
+        elif args.cmd == "doctor":
+            _print_json(doctor(client, notes_page_id))
+    except (ValueError, NotionError) as e:
+        print(f"错误: {e}", file=sys.stderr)
+        return 1
     return 0
 
 
 def _selftest():
-    """离线自检（本任务：配置解析 + 文本剥除）。"""
+    """离线自检：config 解析 + 文本剥除 + FakeClient 发现/过滤。"""
     import tempfile
+
+    class FakeClient:
+        def __init__(self, pages):
+            self.pages = pages
+
+        def list_all_block_children(self, block_id):
+            return self.pages.get(block_id, [])
 
     failures = []
 
@@ -224,12 +317,40 @@ def _selftest():
         load_env(env)
         check("env load", os.environ.get("NOTION_SELFTEST_KEY") == "x")
 
-    children = [
-        {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "把AI当第二大脑"}}]}},
-        {"type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Finch 讨论记录 #disc_x"}}]}},
-        {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "判断：..."}}]}},
-    ]
-    check("strip discussion", user_region_text(children) == "把AI当第二大脑")
+    pages = {
+        "notes": [
+            {"id": "year", "type": "child_page", "child_page": {"title": "2024"}},
+            {"id": "m10", "type": "child_page", "child_page": {"title": "2026.10"}},
+        ],
+        "year": [],
+        "m10": [
+            {"id": "b1", "type": "toggle",
+             "toggle": {"rich_text": [{"text": {"content": "10月9日 主动权"}}]},
+             "created_time": "2026-10-09T02:35:00.000Z"},
+            {"id": "b2", "type": "toggle",
+             "toggle": {"rich_text": [{"text": {"content": "10月16日 软件闭环"}}]},
+             "created_time": "2026-10-16T00:00:00.000Z"},
+            {"id": "b3", "type": "toggle",
+             "toggle": {"rich_text": [{"text": {"content": "9月1日 旧"}}]},
+             "created_time": "2026-09-01T00:00:00.000Z"},
+        ],
+        "b1": [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "把AI当第二大脑"}}]}},
+            {"type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Finch 讨论记录 #disc_x"}}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "判断：..."}}]}},
+        ],
+        "b2": [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "软件闭环正文"}}]}},
+        ],
+    }
+    client = FakeClient(pages)
+    now = datetime(2026, 10, 16, tzinfo=timezone.utc)
+
+    check("discover", discover_page_ids(client, "notes") == ["year", "m10"])
+    check("list filter", [e["block_id"] for e in list_diary(client, "notes", 7, now)] == ["b1", "b2"])
+    check("read strip", read_entry(client, "b1") == "把AI当第二大脑")
+    check("read with discussion", "Finch 讨论记录" in read_entry(client, "b1", with_discussion=True))
+    check("doctor", doctor(client, "notes")["pages"] == 2)
 
     if failures:
         print(f"selftest 失败: {failures}")
