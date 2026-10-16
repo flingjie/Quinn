@@ -131,7 +131,7 @@ def load_workspace_config(path=CONFIG_PATH):
                 continue
             key, _, value = line.partition(":")
             key = key.strip()
-            value = value.strip()
+            value = value.split("#", 1)[0].strip()
             if key:
                 result[key] = value
     return result
@@ -214,7 +214,7 @@ def _selftest():
     with tempfile.TemporaryDirectory() as tmp:
         cfg = os.path.join(tmp, "config.md")
         with open(cfg, "w", encoding="utf-8") as f:
-            f.write("# c\ninteraction: on\nnotion_notes_page_id: abc123\nnotion_lookback_days: 7\n")
+            f.write("# c\ninteraction: on\nnotion_notes_page_id: abc123   # Notes 容器页 id\nnotion_lookback_days: 7   # 最近 N 天日记\n")
         got = load_workspace_config(cfg)
         check("config parse", got.get("notion_notes_page_id") == "abc123" and got.get("notion_lookback_days") == "7")
 
