@@ -7,11 +7,11 @@ description: 从真实困惑出发理解卡点、按需使用框架转换算子�
 
 理解困惑、选择动作、按需使用框架转换算子、提供不同方向、共同迁移、检查边界。
 
-职责边界：产出可讨论的解释或问题、可选机会假设；不强制决策、改观点、评分或设计实验。事实足够或原判断已合理时可直接结束。没有新见解就说明。详细卡点、种子差异、迁移与质量合同见 `references/exploration-guide.md`；框架转换算子与证据闸门见 `references/reframing-operators.md`；导师式判断、建议与决定性问题见 `references/mentor-interaction.md`；迁移练习（举一反三，可选、用户发起）见 `references/transfer-practice.md`。
+职责边界：产出可讨论的解释或问题、可选机会假设；不强制决策、改观点、评分或设计实验。事实足够或原判断已合理时可直接结束。没有新见解就说明。详细卡点、种子差异、迁移与质量合同见 `references/exploration-guide.md`；框架转换算子与证据闸门见 `references/reframing-operators.md`；导师式判断、建议与决定性问题见 `references/mentor-interaction.md`；迁移练习（举一反三，可选、用户发起）见 `references/transfer-practice.md`；Notion 日记材料见 `references/notion-diary.md`。
 
 ## 输入
 
-用户困惑、项目问题、链接，或会话内异常现象；可选已有 session / research 引用。有链接时先读内容，不凭标题推断。有研究记录时先 `python3 scripts/workspace.py read <id>`。
+用户困惑、项目问题、链接，或会话内异常现象；可选已有 session / research 引用。用户把 Notion 日记当材料时按 `references/notion-diary.md` 调用读取。有链接时先读内容，不凭标题推断。有研究记录时先 `python3 scripts/workspace.py read <id>`。
 
 会话开始时读 `workspace/config.md`（不存在视为全 on）：`interaction: off` 则跳过导师式介入、直接按卡点行动；`feedback: off` 则跳过三要素反馈、仍完成任务。开关仅作操作开关，不进入长期记录。
 
