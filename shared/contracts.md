@@ -1,6 +1,6 @@
 # Quinn 共享契约（Contracts）
 
-本文定义 Quinn 三个 Skill（research / explore / synthesize）共用的数据约定：记录如何存储、字段如何命名、归属与证据如何标记、谁负责写什么。三个 Skill 与 `scripts/workspace.py` 均以本文为唯一真源。
+本文定义 Quinn 四个 Skill（research / explore / synthesize / brainstorming）共用的数据约定：记录如何存储、字段如何命名、归属与证据如何标记、谁负责写什么。四个 Skill 与 `scripts/workspace.py` 均以本文为唯一真源。
 
 > 原则：可追溯（重要事实能找到来源）、归属清晰（作者主张 / AI 提议 / 用户判断三者不混）、不伪造（证据不足时保留未知）。任何一条都不允许"AI 提议经默认值变成用户已接受"。理解变化必须依据用户表达；模型总结未经用户支持时标为候选，不得写成用户立场。
 
@@ -84,6 +84,8 @@
 
 正文按需小节见 `skills/quinn-synthesize/references/session-format.md`（含可选的目标与取舍、假设与验证动作、用户自述背景、行动复盘小节；均 body 层，不加 frontmatter、不升 `schema_version`）。
 
+思维练习（`quinn-brainstorming`）复用 session：`mode: brainstorming`，正文小节见 `session-format.md`「头脑风暴练习」。
+
 ### 周期性回看（session 用法）
 
 回看是 `quinn-synthesize` 的按需用法，**不是新 kind**，复用 session 记录：
@@ -150,8 +152,9 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 - `quinn-research` 写 research 记录。
 - `quinn-explore` 引导探索；**不再默认写 discussions**。
 - `quinn-synthesize` 写/更新 **session**（主记录）；负责恢复、纠正、回访与 profile 显式偏好更新。
+- `quinn-brainstorming` 生成书写问题与反馈；session 由 synthesize 写、research 按需由 research 写。
 - 用户明确要求时，synthesize 仍可写 insight / 更新 topic（旧路径）。
-- 三个 Skill 经同一脚本更新记录；重复保存不新建 session。
+- 四个 Skill 经同一脚本更新记录；重复保存不新建 session。
 
 ## 9. 恢复与一致性
 

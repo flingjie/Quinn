@@ -32,7 +32,7 @@ payload 为 YAML/JSON（保留键 `body` 放正文）。`find` 结果含 `update
 
 `profile.md` 不是 kind：由 synthesize 在用户明确表态时直接读写；格式见 `examples/profile.md`。
 
-三个 Skill（`skills/quinn-*`）负责生成 payload 并调用脚本，不直接操作 kind 文件。
+四个 Skill（`skills/quinn-*`）负责生成 payload 并调用脚本，不直接操作 kind 文件。
 
 ## 示例
 
