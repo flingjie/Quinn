@@ -8,7 +8,7 @@
 
 | 字段 | 说明 |
 | --- | --- |
-| `mode` | 当前主 Skill，如 `explore` / `research` / `synthesize` / `brainstorming` |
+| `mode` | 当前主 Skill / mode，如 `explore` / `research` / `synthesize` / `brainstorming` / `jitou`（地头力训练） |
 | `topic` | 短标题，供恢复检索（可选） |
 | `topic_ids` | 关联旧专题（可选，默认可 `[]`） |
 | `record_ids` | 关联其他记录（可选） |
@@ -133,6 +133,25 @@ Quinn 提议标「候选」，用户确认后才算其立场；未经认可不�
 | 继续位置 | 一句说明下一次从哪里接上 |
 
 暂停、继续、修订与结束都更新同一 session；修订时保留旧题与回答的映射，恢复时取回题号、答案与提示进度；重复保存不新建记录（沿用 create → read → update 同一 ID）。
+
+## 地头力训练（jitou，可选）
+
+当 `quinn-brainstorming` 进入 jitou mode 时，session 用 `mode: jitou`，正文按需记录（全部 body 层，不加 frontmatter、不升 `schema_version`）：
+
+| 小节 | 约束 |
+| --- | --- |
+| 本次问题 | 保留原话；来源为真实问题或模拟场景，模拟须标虚构 |
+| 训练能力与选择原因 | 假设 / 框架 / 抽象 之一，说明选择原因 |
+| 初步判断 | 用户原话；未作答标「未表达」，不代填 |
+| 聚焦追问 | 逐轮记录：阶段 + 追问 + 用户原文，保留原文不被 AI 概括覆盖 |
+| 条件变化 | 明确标注「假设条件」+ 只改一个关键条件 + 用户回答 |
+| 最终判断 | 用户修正或保留的判断，关联原话，不以 AI 建议代填 |
+| 反馈 | 观察 + 原话引用 + 待改进点；无证据项留空 |
+| 验证动作 | 检查什么 / 从哪取证 / 什么结果会改判；用户确认后才是承诺 |
+| 验证状态 | not_planned / pending / supported / refuted / mixed / inconclusive，独立于会话 status |
+| 继续位置 | 一句说明下次从哪里接上 |
+
+暂停、继续、提前结束与完成都更新同一 session；提前结束如实记录未完成部分；恢复直接读保存状态，不从摘要猜测进度；重复保存不新建记录（沿用 create → read → update 同一 ID）。
 
 ## 与旧记录的关系
 

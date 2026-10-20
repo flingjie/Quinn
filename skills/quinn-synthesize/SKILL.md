@@ -68,7 +68,7 @@ python3 scripts/workspace.py create sessions /tmp/quinn-session.yaml
 
 重复保存或暂停后续写：先 `read` 取得 `revision`，再 `update` **同一 ID**，禁止再 `create`。版本冲突则重读合并，不静默覆盖。写失败须明确说明未保存内容，不得声称成功。
 
-`status`：`exploring` / `paused` / `closed`（旧值 `active` / `completed` / `save_failed` 仍合法）。`change_status`：`expressed` / `original_confirmed` / `no_change` / `unconfirmed`。
+`mode`：`explore` / `research` / `synthesize` / `brainstorming` / `jitou`（地头力训练）。`status`：`exploring` / `paused` / `closed`（旧值 `active` / `completed` / `save_failed` 仍合法）。`change_status`：`expressed` / `original_confirmed` / `no_change` / `unconfirmed`。
 
 空小节省略。不保存冗长内部推理。
 
@@ -115,7 +115,7 @@ Quinn 可以给建议，但由用户决定是否调整目标。单次结果不�
 
 ## 回访与主动选题（P3）
 
-- **回访：** 用户要求回访或带来新线索时，从相关 session 选**一个**开放问题；引入新证据或新问题，不重放旧结论。需要核查时转 research。
+- **回访：** 用户要求回访或带来新线索时，从相关 session 选**一个**开放问题；引入新证据或新问题，不重放旧结论。需要核查时转 research。地头力训练（jitou）的验证状态回填复用此处：用户说「回看上次训练 / 回看验证结果」时读 `mode: jitou` 的 session，只问新增结果，把验证状态更新为 supported / refuted / mixed / inconclusive，不要求重跑整个训练。
 - **主动选题：** 用户说“给我一个值得想的问题”时，读 `workspace/profile.md`（若存在）中的显式兴趣，并用 `find` 看近期 sessions，避免重复同一结论或只推荐熟悉领域；找少量异常，核实后交给 explore 作为入口。
 - **兴趣纠正：** 只改 profile 里用户明确说过的条目及来源；不推断性格、能力或稳定认知习惯。无 profile 文件则当空偏好。
 
