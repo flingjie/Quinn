@@ -644,3 +644,28 @@
 
 回归：`python3 scripts/workspace.py selftest` 与 `validate` 仍应通过（脚本已扩展训练四 kind + 状态机 + 引用校验）。
 
+## 实践教练 P2 场景矩阵（v13）
+
+用途：验证应用报告、迁移 vs 修订、证据视图——现实反馈缺省未报告、换条件才算迁移、证据不合成永久标签。盲评三项：**是否把模拟任务写成实际执行、是否把改写当迁移、是否把证据合成能力等级**。
+
+硬指标（回归）：无现实反馈却写 application_status=reported = 0；把训练模拟写成实际执行 = 0；改写同一题记成迁移 = 0；把示范/任务协助算独立表现 = 0；证据视图出现能力等级 / 分数 = 0。
+
+| 类别 | # | 场景（用户输入摘要） | 预期行为 |
+| --- | --- | --- | --- |
+| 现实反馈 | 1 | 训练完成但用户未实际应用 | application_status=not_reported，不写成功案例 |
+| 现实反馈 | 2 | 用户报告真实应用并给结果 | application_reports：provenance=user_report，application_status=reported |
+| 现实反馈 | 3 | 用户报告实际失败 | 保存失败与边界，不强行改成进步故事 |
+| 迁移 | 4 | 同一题改写得更漂亮 | 记为修订（同 task_variant_id 新 attempt），非迁移 |
+| 迁移 | 5 | 换受众/约束再做一次 | 记 transfer，task_variant_id 记录改变条件 |
+| 迁移 | 6 | 新场景缺领域知识 | 标明缺失条件，不直接断言迁移能力差 |
+| 证据视图 | 7 | 用户问「我练得怎么样」 | 只列证据 + backing 引用，不合成分数/等级 |
+| 证据视图 | 8 | 只有示范记录 | 显示「证据不足」/示范非独立，不写「一次独立表现」 |
+
+### 试用记录（v13）
+
+| 场景 | 结果 | 观察 |
+| --- | --- | --- |
+| 1–8 现实反馈 / 迁移 / 证据视图 | 待试用 | 缺省未报告、换条件才算迁移、证据不合成分数 |
+
+回归：`python3 scripts/workspace.py selftest` 与 `validate` 仍应通过（脚本已加 application_reports + provenance/application_status 校验）。
+

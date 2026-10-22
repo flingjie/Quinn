@@ -7,7 +7,7 @@ description: 围绕用户的真实任务做个人能力实践教练：明确能�
 
 围绕真实任务提供实践教练：收敛能力目标、尝试或示范、针对性反馈、检查能否独立应用与迁移。
 
-职责边界：把真实任务收敛为可观察的能力目标，按用户意愿选择学习练习 / 示范起步 / 任务协助，保存尝试与帮助记录、给有依据的反馈、检查独立应用与迁移。不评分、不设能力等级、不把 AI 生成成果算成用户已学会、不自动推断掌握、不因一次表现贴标签。入口路由见 `references/entry-routing.md`；三交付模式见 `references/delivery-modes.md`；每轮反馈四要素见 `references/feedback-format.md`；四类记录写协议见 `references/training-records.md`；任务配方与 rubric 见 `references/rubrics/`。
+职责边界：把真实任务收敛为可观察的能力目标，按用户意愿选择学习练习 / 示范起步 / 任务协助，保存尝试与帮助记录、给有依据的反馈、检查独立应用与迁移。不评分、不设能力等级、不把 AI 生成成果算成用户已学会、不自动推断掌握、不因一次表现贴标签。入口路由见 `references/entry-routing.md`；三交付模式见 `references/delivery-modes.md`；每轮反馈四要素见 `references/feedback-format.md`；五类记录写协议见 `references/training-records.md`（含 application_reports）；任务配方与 rubric 见 `references/rubrics/`。
 
 ## 输入与开关
 
@@ -41,7 +41,8 @@ description: 围绕用户的真实任务做个人能力实践教练：明确能�
 4. **尝试或示范。** 按交付模式走；`create attempts`（正文 = 用户产物原文，`assistance_level` + `assistance_details` + `evidence_kind`）。
 5. **给反馈。** 按 `references/feedback-format.md` 四要素；`create feedback`（`criterion_results` 引用原文 + `verdict` + `source_quote` + `next_action`）。默认一次一个关键缺口。
 6. **检查理解 / 应用 / 迁移。** `evidence_kind` 区分：`understanding`（复述/反例）、`application`（当前任务实际运用）、`transfer`（换条件，P2）。改写同一题 = 修订（同 `task_variant_id` 新 attempt），换条件 = 迁移（新 `task_variant_id` + `transfer`）。
-7. **结束 / 暂停 / 继续。** `update training_sessions` 走状态机（`awaiting_attempt → reviewed` 等）；叙事探索记录仍由 `quinn-synthesize` 写 `sessions`，本技能只写训练四 kind。
+7. **记录现实应用（可选）。** 用户报告把训练用于现实任务时写 `application_reports`（缺省 `application_status: not_reported`，见 `references/training-records.md`）。
+8. **结束 / 暂停 / 继续。** `update training_sessions` 走状态机（`awaiting_attempt → reviewed` 等）；叙事探索记录仍由 `quinn-synthesize` 写 `sessions`，本技能只写训练五 kind。
 
 ## 帮助程度与记录
 
@@ -49,7 +50,7 @@ description: 围绕用户的真实任务做个人能力实践教练：明确能�
 
 ## 持久化
 
-本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` 四 kind，经 `python3 scripts/workspace.py create|update`（脚本做枚举、引用、状态机与不可变校验）。`attempts` 不可更新。事实缺口影响训练时转 `quinn-research` 写 `workspace/research/`。叙事 session 由 synthesize 写，本技能不写 `sessions`。
+本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` / `application_reports` 五 kind，经 `python3 scripts/workspace.py create|update`（脚本做枚举、引用、状态机与不可变校验）。`attempts` 不可更新。事实缺口影响训练时转 `quinn-research` 写 `workspace/research/`。叙事 session 由 synthesize 写，本技能不写 `sessions`。
 
 ## 输出
 

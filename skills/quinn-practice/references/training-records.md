@@ -32,9 +32,22 @@ goal → training_session → attempt → feedback。脚本 `_check_references` 
 
 不单独存 provenance 字段；由 `assistance_level` 派生：`independent`→user_artifact，`hinted`/`template`→user_artifact-with-help，`demonstrated`→model_demo，`coauthored`→mixed。这从视图层保证「模型示范不算 user_artifact」「任务协助不算独立证据」。
 
-## 证据类型
+## 证据类型与迁移
 
-`evidence_kind`：`understanding`（复述/反例）/ `application`（当前任务实际运用）/ `transfer`（换条件，P2）。改写同一题 = 同 `task_variant_id` 新 attempt = 修订，不是迁移。
+`evidence_kind`：`understanding`（复述/反例）/ `application`（当前任务实际运用）/ `transfer`（换条件）。
+
+- 改写同一题 = 同 `task_variant_id` 新 attempt = **修订**，不是迁移。
+- 迁移 = 换受众 / 约束 / 任务领域，每次只改少数关键条件；`task_variant_id` 记录改变的那一个条件（如「受众从团队换成客户」）。
+- 换条件后能说明「哪些机制仍适用、哪些必须改变」才算迁移表现；背景知识不足被误判为迁移失败时，先补背景再判断。
+
+## 应用报告（application_reports，P2）
+
+用户把训练用于现实任务并反馈结果时写 `application_reports`。字段真源见 `shared/contracts.md` §10。
+
+- 缺省 `application_status: not_reported`，直到有现实反馈；不得把训练中完成的模拟任务写成实际执行。
+- `application_status: reported` 必填 `provenance`（`user_report` / `external_feedback` / `user_artifact` / `model_assessment`）。
+- `observation` / `outcome` 来自用户报告或外部反馈，**不能由模型自行补齐执行结果**；失败与边界如实保存，不强行写成进步故事。
+- 延迟检查由 `quinn-synthesize` 回访触发（见其 `references/evidence-view.md`），写报告时沿用本协议。
 
 ## rubric 版本
 

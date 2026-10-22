@@ -113,6 +113,10 @@ Quinn 可以给建议，但由用户决定是否调整目标。单次结果不�
 
 对比原先理解与当前理解；允许 `no_change` / `unconfirmed`。用户纠正记录时**追加**说明，不覆盖变化历程，不把未说的话写成用户立场。后续证据追加到同一 session 正文，并更新 `research_ids`。
 
+## 训练证据视图与延迟检查（P2）
+
+用户问「我练得怎么样」「检查一下进步」、结束训练会话，或回访要现实应用结果时：按 `references/evidence-view.md` 从 Attempt / Feedback / ApplicationReport 派生证据视图，只列证据、不合成分数或永久标签。延迟检查只问结果不自答，有现实反馈按 `quinn-practice` 的写协议写 `application_reports`（缺省 `not_reported`），不把模拟任务写成实际执行。
+
 ## 回访与主动选题（P3）
 
 - **回访：** 用户要求回访或带来新线索时，从相关 session 选**一个**开放问题；引入新证据或新问题，不重放旧结论。需要核查时转 research。地头力训练（jitou）的验证状态回填复用此处：用户说「回看上次训练 / 回看验证结果」时读 `mode: jitou` 的 session，只问新增结果，把验证状态更新为 supported / refuted / mixed / inconclusive，不要求重跑整个训练。

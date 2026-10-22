@@ -286,3 +286,14 @@ cancelled            -> (终态)
 - 没有现实反馈时 `application_status = not_reported`；不得把训练中完成的模拟任务写成实际执行。
 - 跨 kind 引用顺序：goal → training_session → attempt → feedback（引用记录先落盘，再写引用方，脚本强制）。
 - 旧 `sessions` 里的头脑风暴 / 迁移 / 地头力正文小节保持原样，不迁移为新 kind，不重写。
+
+### 能力证据（SkillEvidence，派生视图，P2）
+
+能力证据不是 kind，是 `quinn-synthesize` 从 Attempt / Feedback / ApplicationReport 派生的视图：按 `goal_id` 分组，按 `assistance_level` 与 `evidence_kind` 分类，逐条列出证据，不合成一个分数或永久标签。可显示的状态短语（每条附 backing attempt/feedback 引用）：
+
+- `一次独立表现`：`application` attempt 且 `assistance_level=independent`，对应 feedback 有 `demonstrated`。
+- `有提示时完成`：`application` attempt 且 `assistance_level∈{hinted,template}`，对应 feedback 有 `demonstrated`。
+- `新场景表现记录`：`transfer` attempt（`task_variant_id` 记录改变的那一个条件），有可观察结果。
+- `证据不足`：无可支撑上述任一的记录。
+
+同一 goal 可同时有多条；不自动推断永久掌握，不把示范（`demonstrated`/`coauthored`）或任务协助算作独立表现。推导规则与延迟检查见 `skills/quinn-synthesize/references/evidence-view.md`。
