@@ -50,7 +50,7 @@ description: 围绕用户的真实任务做个人能力实践教练：明确能�
 
 ## 持久化
 
-本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` / `application_reports` 五 kind，经 `python3 scripts/workspace.py create|update`（脚本做枚举、引用、状态机与不可变校验）。`attempts` 不可更新。事实缺口影响训练时转 `quinn-research` 写 `workspace/research/`。叙事 session 由 synthesize 写，本技能不写 `sessions`。
+本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` / `application_reports` 五 kind，经 `python3 scripts/workspace.py create|update`（脚本做枚举、引用、状态机与不可变校验）。`handoffs`（P3，与 Finch 交接）字段见契约 §10、脚本已支持，本技能落地 P3 前不写。`attempts` 不可更新。事实缺口影响训练时转 `quinn-research` 写 `workspace/research/`。叙事 session 由 synthesize 写，本技能不写 `sessions`。
 
 ## 输出
 

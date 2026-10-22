@@ -1,6 +1,6 @@
 # 训练记录写协议
 
-本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` 四 kind，经 `scripts/workspace.py`。字段与枚举真源是 `shared/contracts.md` §10，此处只写写入顺序与语义。
+本技能单写 `goals` / `training_sessions` / `attempts` / `feedback` / `application_reports` 五 kind，经 `scripts/workspace.py`。字段与枚举真源是 `shared/contracts.md` §10，此处只写写入顺序与语义。`handoffs`（P3，与 Finch 交接）字段已在契约 §10 定义、脚本已支持该 kind，本技能在 P3 落地前不使用。
 
 ## 写入顺序（引用先落盘）
 

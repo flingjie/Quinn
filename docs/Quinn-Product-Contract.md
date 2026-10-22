@@ -28,6 +28,8 @@ Quinn 不做脱离真实任务的出题训练。思维练习（`quinn-brainstorm
 
   三种交付模式（学习练习 / 示范起步 / 任务协助）随时切换；任务协助优先交付结果，但其输出不算独立能力证据。
 
+> 探索路径内部再按 solve / practice / unknown 三种意图态决定如何回应（见 `skills/quinn-explore/references/mentor-interaction.md`「使用意图」）。这里的 practice 指「用户想先自己尝试」的迁移练习，与上面的「实践教练路径」（`quinn-practice`）不是一回事，不构成第三条顶层路径。
+
 ## 3. 主线关系
 
 ```mermaid

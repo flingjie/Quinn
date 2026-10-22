@@ -48,7 +48,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "workspace"))
 LOCK_PATH = os.path.join(WORKSPACE_ROOT, ".lock")
 
-KINDS = ("topics", "research", "discussions", "insights", "sessions", "goals", "training_sessions", "attempts", "feedback", "application_reports")
+KINDS = ("topics", "research", "discussions", "insights", "sessions", "goals", "training_sessions", "attempts", "feedback", "application_reports", "handoffs")
 SCHEMA_VERSION = "1"
 
 ATTRIBUTIONS = {"source_author", "assistant", "user"}
@@ -88,6 +88,8 @@ EVIDENCE_KINDS = {"understanding", "application", "transfer"}
 FEEDBACK_VERDICTS = {"demonstrated", "needs_work", "insufficient_evidence"}
 PROVENANCES = {"user_artifact", "user_report", "external_feedback", "model_assessment"}
 APPLICATION_STATUSES = {"not_reported", "reported"}
+HANDOFF_DIRECTIONS = {"finch_to_quinn", "quinn_to_finch"}
+HANDOFF_STATUSES = {"pending", "imported", "exported", "rejected"}
 
 # 训练闭环状态机白名单（update_record 强制）
 TRAINING_TRANSITIONS = {
@@ -333,6 +335,15 @@ def _collect_issues(fm: dict, kind: str) -> list[str]:
             issues.append(f"非法 application_status: {st!r}（可选 {sorted(APPLICATION_STATUSES)}）")
         if st == "reported" and not prov:
             issues.append("application_status=reported 需 provenance（谁报告的）")
+    elif kind == "handoffs":
+        if not fm.get("handoff_id"):
+            issues.append("缺 handoff_id（交接记录必填外部稳定 id）")
+        direction = fm.get("direction")
+        if direction is not None and direction not in HANDOFF_DIRECTIONS:
+            issues.append(f"非法 direction: {direction!r}（可选 {sorted(HANDOFF_DIRECTIONS)}）")
+        status = fm.get("status")
+        if status is not None and status not in HANDOFF_STATUSES:
+            issues.append(f"非法 status: {status!r}（可选 {sorted(HANDOFF_STATUSES)}）")
     for oq in fm.get("open_questions") or []:
         if isinstance(oq, dict):
             st = oq.get("status")
@@ -996,6 +1007,31 @@ def _selftest() -> int:
             check("application_status=reported 缺 provenance 被拒", False)
         except ValueError:
             check("application_status=reported 缺 provenance 被拒", True)
+
+        handoff_id = create_record(
+            "handoffs",
+            {"handoff_id": "finch-run-001", "direction": "finch_to_quinn", "external_refs": [], "status": "pending", "record_ids": []},
+        )
+        created.append(handoff_id)
+        check("create handoffs", handoff_id)
+
+        try:
+            create_record("handoffs", {"direction": "quinn_to_finch", "status": "pending"})
+            check("handoffs 缺 handoff_id 被拒", False)
+        except ValueError:
+            check("handoffs 缺 handoff_id 被拒", True)
+
+        try:
+            create_record("handoffs", {"handoff_id": "x", "direction": "sideways", "status": "pending"})
+            check("非法 handoffs direction 被拒", False)
+        except ValueError:
+            check("非法 handoffs direction 被拒", True)
+
+        try:
+            create_record("handoffs", {"handoff_id": "x", "direction": "quinn_to_finch", "status": "done"})
+            check("非法 handoffs status 被拒", False)
+        except ValueError:
+            check("非法 handoffs status 被拒", True)
 
         report = validate_workspace()
         self_issues = [i for i in report["issues"] if any(f"/{rid}]" in i for rid in created)]
