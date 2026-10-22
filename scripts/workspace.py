@@ -48,7 +48,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "workspace"))
 LOCK_PATH = os.path.join(WORKSPACE_ROOT, ".lock")
 
-KINDS = ("topics", "research", "discussions", "insights", "sessions")
+KINDS = ("topics", "research", "discussions", "insights", "sessions", "goals", "training_sessions", "attempts", "feedback")
 SCHEMA_VERSION = "1"
 
 ATTRIBUTIONS = {"source_author", "assistant", "user"}
@@ -70,6 +70,39 @@ CHANGE_STATUSES = {
     "unconfirmed",
 }
 ACCESS_STATUSES = {"ok", "partial", "failed"}
+
+GOAL_STATUSES = {"draft", "active", "completed", "archived"}
+TRAINING_STATUSES = {
+    "draft",
+    "active",
+    "awaiting_attempt",
+    "awaiting_application",
+    "reviewed",
+    "paused",
+    "cancelled",
+}
+DELIVERY_MODES = {"learning", "demo", "assistance"}
+ASSISTANCE_LEVELS = {"independent", "hinted", "template", "demonstrated", "coauthored"}
+ASSISTANCE_DETAIL_TYPES = {"hint", "template", "demonstration", "prompt"}
+EVIDENCE_KINDS = {"understanding", "application", "transfer"}
+FEEDBACK_VERDICTS = {"demonstrated", "needs_work", "insufficient_evidence"}
+
+# 训练闭环状态机白名单（update_record 强制）
+TRAINING_TRANSITIONS = {
+    "draft": {"active", "cancelled"},
+    "active": {"awaiting_attempt", "awaiting_application", "paused", "cancelled"},
+    "awaiting_attempt": {"active", "awaiting_application", "reviewed", "paused", "cancelled"},
+    "awaiting_application": {"awaiting_attempt", "reviewed", "paused", "cancelled"},
+    "paused": {"active", "awaiting_attempt", "awaiting_application", "cancelled"},
+    "reviewed": set(),
+    "cancelled": set(),
+}
+GOAL_TRANSITIONS = {
+    "draft": {"active", "archived"},
+    "active": {"completed", "archived"},
+    "completed": set(),
+    "archived": set(),
+}
 
 # 脚本自管的公共字段，payload 不得提供
 RESERVED_FIELDS = {"id", "schema_version", "revision", "created_at", "updated_at"}
@@ -168,6 +201,10 @@ def _referenced_ids(fm: dict) -> set[str]:
         v = fm.get(field) or []
         if isinstance(v, list):
             refs.update(x for x in v if isinstance(x, str))
+    for field in ("goal_id", "session_id", "attempt_id"):
+        v = fm.get(field)
+        if isinstance(v, str) and v:
+            refs.add(v)
     for ref in _evidence_refs(fm):
         if ref.get("record_id"):
             refs.add(ref["record_id"])
@@ -179,6 +216,17 @@ def _check_references(fm: dict) -> None:
     for ref in sorted(_referenced_ids(fm)):
         if not _record_path(ref)[0]:
             raise ValueError(f"引用不存在的记录 {ref!r}（先落盘该记录，再引用）")
+
+
+def _check_kind_ref(fm: dict, field: str, expected_kind: str, issues: list[str], kind: str, record_id: str, ids: dict[str, str]) -> None:
+    """校验标量引用指向正确 kind（validate_workspace 用）。"""
+    rid = fm.get(field)
+    if not rid:
+        return
+    if rid not in ids:
+        issues.append(f"[{kind}/{record_id}] {field} 引用不存在的记录 {rid}")
+    elif ids[rid] != expected_kind:
+        issues.append(f"[{kind}/{record_id}] {field} 指向非 {expected_kind} 记录 {rid}（实际 {ids[rid]}）")
 
 
 @contextlib.contextmanager
@@ -233,6 +281,45 @@ def _collect_issues(fm: dict, kind: str) -> list[str]:
             val = fm.get(key)
             if val is not None and not _is_iso_date(str(val).strip()):
                 issues.append(f"非法 {key}: {val!r}（应为 YYYY-MM-DD）")
+    elif kind == "goals":
+        status = fm.get("status")
+        if status is not None and status not in GOAL_STATUSES:
+            issues.append(f"非法 status: {status!r}（可选 {sorted(GOAL_STATUSES)}）")
+        if not fm.get("desired_behavior"):
+            issues.append("缺 desired_behavior（可观察行为目标必填）")
+    elif kind == "training_sessions":
+        status = fm.get("status")
+        if status is not None and status not in TRAINING_STATUSES:
+            issues.append(f"非法 status: {status!r}（可选 {sorted(TRAINING_STATUSES)}）")
+        dm = fm.get("delivery_mode")
+        if dm is not None and dm not in DELIVERY_MODES:
+            issues.append(f"非法 delivery_mode: {dm!r}（可选 {sorted(DELIVERY_MODES)}）")
+        if not fm.get("goal_id"):
+            issues.append("缺 goal_id（训练会话必填目标）")
+    elif kind == "attempts":
+        al = fm.get("assistance_level")
+        if al is not None and al not in ASSISTANCE_LEVELS:
+            issues.append(f"非法 assistance_level: {al!r}（可选 {sorted(ASSISTANCE_LEVELS)}）")
+        ek = fm.get("evidence_kind")
+        if ek is not None and ek not in EVIDENCE_KINDS:
+            issues.append(f"非法 evidence_kind: {ek!r}（可选 {sorted(EVIDENCE_KINDS)}）")
+        if not fm.get("session_id"):
+            issues.append("缺 session_id（尝试必填所属训练会话）")
+        for d in fm.get("assistance_details") or []:
+            if isinstance(d, dict) and d.get("type") not in ASSISTANCE_DETAIL_TYPES:
+                issues.append(f"非法 assistance_details.type: {d.get('type')!r}（可选 {sorted(ASSISTANCE_DETAIL_TYPES)}）")
+    elif kind == "feedback":
+        if not fm.get("attempt_id"):
+            issues.append("缺 attempt_id（反馈必填所属尝试）")
+        if not fm.get("rubric_version"):
+            issues.append("缺 rubric_version（反馈必填 rubric 版本）")
+        for cr in fm.get("criterion_results") or []:
+            if isinstance(cr, dict):
+                v = cr.get("verdict")
+                if v is not None and v not in FEEDBACK_VERDICTS:
+                    issues.append(f"非法 criterion_results.verdict: {v!r}（可选 {sorted(FEEDBACK_VERDICTS)}）")
+                if v in ("demonstrated", "needs_work") and not cr.get("source_quote"):
+                    issues.append(f"verdict={v} 需 source_quote 非空（引用用户尝试原文）")
     for oq in fm.get("open_questions") or []:
         if isinstance(oq, dict):
             st = oq.get("status")
@@ -253,6 +340,28 @@ def _validate_frontmatter(fm: dict, kind: str) -> None:
     issues = _collect_issues(fm, kind)
     if issues:
         raise ValueError("；".join(issues))
+
+
+def _check_entry_state(kind: str, fm: dict) -> None:
+    """创建时入口态：训练会话与目标须从 draft 起步。"""
+    if kind in ("training_sessions", "goals"):
+        status = fm.get("status")
+        if status != "draft":
+            raise ValueError(f"{kind} 创建时 status 须为 'draft'（当前 {status!r}）")
+
+
+def _check_transition(kind: str, old_fm: dict, new_fm: dict) -> None:
+    """校验状态机转换（training_sessions / goals）。状态无变化则不检查。"""
+    if kind not in ("training_sessions", "goals"):
+        return
+    transitions = TRAINING_TRANSITIONS if kind == "training_sessions" else GOAL_TRANSITIONS
+    old_status = old_fm.get("status")
+    new_status = new_fm.get("status")
+    if new_status is None or new_status == old_status:
+        return
+    allowed = transitions.get(old_status, set())
+    if new_status not in allowed:
+        raise ValueError(f"非法状态转换: {old_status!r} -> {new_status!r}（允许 {sorted(allowed)}）")
 
 
 # --------------------------------------------------------------------------- #
@@ -278,6 +387,7 @@ def create_record(kind: str, payload: dict | None = None, body: str = "") -> str
     }
     fm.update(payload)
     _validate_frontmatter(fm, kind)
+    _check_entry_state(kind, fm)
     _check_references(fm)
     path = os.path.join(_kind_dir(kind), fm["id"] + ".md")
     with _locked():
@@ -319,11 +429,14 @@ def update_record(record_id: str, expected_revision: int, payload: dict | None =
             raise RevisionConflict(
                 f"版本冲突：记录 {record_id} 当前 revision={cur['revision']}，期望 {expected_revision}"
             )
+        if cur["kind"] == "attempts":
+            raise ValueError("attempts 记录不可更新（用户产物不可被覆盖）；修改请新建 attempt")
         fm = dict(cur["frontmatter"])
         new_body = body if body is not None else cur["body"]
         fm.update(payload)
         fm["revision"] = cur["revision"] + 1
         fm["updated_at"] = _now()
+        _check_transition(cur["kind"], cur["frontmatter"], fm)
         _validate_frontmatter(fm, cur["kind"])
         _check_references(fm)
         _atomic_write(cur["path"], _serialize(fm, new_body))
@@ -393,7 +506,7 @@ def find_records(
             title = ""
             updated_at = ""
             if isinstance(fm, dict):
-                title = fm.get("title") or fm.get("topic") or fm.get("question") or ""
+                title = fm.get("title") or fm.get("topic") or fm.get("question") or fm.get("desired_behavior") or ""
                 updated_at = fm.get("updated_at") or ""
             if since_d or until_d:
                 day = str(updated_at)[:10]
@@ -471,6 +584,13 @@ def validate_workspace() -> dict:
                 issues.append(f"[{kind}/{record_id}] 证据引用不存在的记录 {rid}")
             elif ids.get(rid) != "research":
                 issues.append(f"[{kind}/{record_id}] 证据引用 {rid} 不是 research 记录（实际 {ids.get(rid)}）")
+        if kind == "training_sessions":
+            _check_kind_ref(fm, "goal_id", "goals", issues, kind, record_id, ids)
+            _check_kind_ref(fm, "session_id", "sessions", issues, kind, record_id, ids)
+        elif kind == "attempts":
+            _check_kind_ref(fm, "session_id", "training_sessions", issues, kind, record_id, ids)
+        elif kind == "feedback":
+            _check_kind_ref(fm, "attempt_id", "attempts", issues, kind, record_id, ids)
     return {"issues": issues, "summary": {"records": len(ids), "issues": len(issues)}}
 
 
@@ -744,6 +864,98 @@ def _selftest() -> int:
         )
         created.append(quoted_insight)
         check("带 user_quote 的 partial 被接受", quoted_insight)
+
+        # --- 训练闭环（P1） ---
+        goal_id = create_record(
+            "goals",
+            {"desired_behavior": "在汇报开头一句话说清问题与需要的决定", "context": "自检", "constraints": [], "evidence_criteria": ["se-goal"], "status": "draft", "record_ids": []},
+        )
+        created.append(goal_id)
+        check("create goals", goal_id)
+
+        ts_id = create_record(
+            "training_sessions",
+            {"goal_id": goal_id, "delivery_mode": "learning", "task_ref": "structured-expression", "rubric_version": "v1", "status": "draft", "next_step": "自检"},
+        )
+        created.append(ts_id)
+        check("create training_sessions (draft)", ts_id)
+
+        try:
+            create_record("training_sessions", {"goal_id": goal_id, "delivery_mode": "learning", "task_ref": "structured-expression", "rubric_version": "v1", "status": "active"})
+            check("training_sessions 非 draft 入口被拒", False)
+        except ValueError:
+            check("training_sessions 非 draft 入口被拒", True)
+
+        try:
+            update_record(ts_id, 1, {"status": "reviewed"})
+            check("非法转换 draft->reviewed 被拒", False)
+        except ValueError:
+            check("非法转换 draft->reviewed 被拒", True)
+
+        rev = update_record(ts_id, 1, {"status": "active"})
+        check("合法转换 draft->active", rev == 2)
+        rev = update_record(ts_id, rev, {"status": "awaiting_attempt"})
+        check("合法转换 active->awaiting_attempt", rev == 3)
+
+        attempt_id = create_record(
+            "attempts",
+            {"session_id": ts_id, "assistance_level": "independent", "evidence_kind": "understanding", "assistance_details": []},
+            "用户尝试原文（自检）",
+        )
+        created.append(attempt_id)
+        check("create attempts (independent)", attempt_id)
+
+        try:
+            update_record(attempt_id, 1, {"assistance_level": "hinted"})
+            check("attempt 不可变被拒", False)
+        except ValueError:
+            check("attempt 不可变被拒", True)
+
+        try:
+            create_record("attempts", {"session_id": ts_id, "assistance_level": "fully_independent", "evidence_kind": "understanding"})
+            check("非法 assistance_level 被拒", False)
+        except ValueError:
+            check("非法 assistance_level 被拒", True)
+
+        try:
+            create_record("feedback", {"rubric_version": "v1", "criterion_results": [], "next_action": ""})
+            check("feedback 缺 attempt_id 被拒", False)
+        except ValueError:
+            check("feedback 缺 attempt_id 被拒", True)
+
+        try:
+            create_record("feedback", {"attempt_id": "no-such-attempt", "rubric_version": "v1", "criterion_results": [], "next_action": ""})
+            check("feedback 引用不存在 attempt 被拒", False)
+        except ValueError:
+            check("feedback 引用不存在 attempt 被拒", True)
+
+        try:
+            create_record(
+                "feedback",
+                {"attempt_id": attempt_id, "rubric_version": "v1", "criterion_results": [{"criterion_id": "se-goal", "verdict": "demonstrated"}], "next_action": ""},
+            )
+            check("verdict=demonstrated 缺 source_quote 被拒", False)
+        except ValueError:
+            check("verdict=demonstrated 缺 source_quote 被拒", True)
+
+        feedback_id = create_record(
+            "feedback",
+            {
+                "attempt_id": attempt_id,
+                "rubric_version": "v1",
+                "evidence_spans": [{"quote": "用户尝试原文", "criterion_id": "se-goal"}],
+                "criterion_results": [{"criterion_id": "se-goal", "verdict": "needs_work", "source_quote": "用户尝试原文", "missing_info": "未说明依据", "improvement_action": "把第一句改为现状+需要决定"}],
+                "next_action": "把第一句改为「现状是 X，需要你们决定 Y」",
+                "user_corrections": [],
+            },
+        )
+        created.append(feedback_id)
+        check("create feedback", feedback_id)
+
+        frev = update_record(feedback_id, 1, {"user_corrections": [{"at": "2026-10-22T00:00:00+00:00", "correction": "用户纠正", "note": "自检"}]})
+        frec = read_record(feedback_id)
+        check("feedback 追加 user_corrections 递增 revision", frev == 2 and frec["revision"] == 2)
+        check("feedback 保留原 criterion_results", frec["frontmatter"]["criterion_results"][0]["verdict"] == "needs_work")
 
         report = validate_workspace()
         self_issues = [i for i in report["issues"] if any(f"/{rid}]" in i for rid in created)]

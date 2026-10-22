@@ -7,6 +7,12 @@ Quinn 的持久化目录：探索会话与研究材料以「YAML frontmatter + M
 | 路径 | 用途 | 版本控制 |
 | --- | --- | --- |
 | `sessions/` | **主记录**：探索会话、理解变化、继续位置 | gitignore（个人数据） |
+| `goals/` | 学习目标（LearningGoal，训练闭环） | gitignore |
+| `training_sessions/` | 训练主记录（TrainingSession，训练闭环） | gitignore |
+| `attempts/` | 用户尝试（Attempt，不可变） | gitignore |
+| `feedback/` | 反馈（Feedback） | gitignore |
+| `application_reports/` | 实际应用报告（P2） | gitignore |
+| `handoffs/` | 与 Finch 交接（P3） | gitignore |
 | `research/` | 按需研究材料及来源 | gitignore |
 | `topics/` | 专题摘要（旧路径，默认探索不再更新） | gitignore |
 | `discussions/` | 旧讨论记录（默认探索不再创建） | gitignore |

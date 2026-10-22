@@ -15,6 +15,12 @@ workspace/research/
 workspace/discussions/
 workspace/insights/
 workspace/sessions/
+workspace/goals/
+workspace/training_sessions/
+workspace/attempts/
+workspace/feedback/
+workspace/application_reports/
+workspace/handoffs/
 workspace/profile.md
 workspace/config.md
 workspace/.lock

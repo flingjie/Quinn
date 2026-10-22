@@ -163,3 +163,126 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 - 重复执行用已保存的 `record_id` + `expected_revision`；版本冲突重新读取并合并，不静默覆盖。
 - 保存失败明确说明哪些内容未保存，保留可重试结果；源数据与用户原文不在恢复中重生成。
 - 恢复会话：按主题、ID 或近期 `find` 结果读取最少相关 session，先复述一句上下文再继续。
+
+## 10. 训练闭环记录（`quinn-practice`）
+
+训练闭环是 Quinn 作为「个人能力实践教练」的结构化闭环：真实任务 → 明确能力目标 → 尝试或示范 → 针对性反馈 → 再次尝试 → 实际应用 → 新场景迁移。训练记录与探索 `sessions` 分开，由 `quinn-practice` 单写，`scripts/workspace.py` 校验。六个 kind，全部为增量新增，`schema_version` 仍为 `"1"`，不升版本号。
+
+### Kind 清单
+
+| Kind | 目录 | 用途 | 写者 |
+| --- | --- | --- | --- |
+| `goals` | `workspace/goals/` | 学习目标（LearningGoal） | quinn-practice |
+| `training_sessions` | `workspace/training_sessions/` | 训练主记录（TrainingSession） | quinn-practice |
+| `attempts` | `workspace/attempts/` | 用户尝试（Attempt，**不可变**） | quinn-practice |
+| `feedback` | `workspace/feedback/` | 反馈（Feedback，`user_corrections` 追加） | quinn-practice |
+| `application_reports` | `workspace/application_reports/` | 实际应用报告（P2） | quinn-practice |
+| `handoffs` | `workspace/handoffs/` | 与 Finch 交接（P3） | quinn-practice |
+
+`SkillEvidence` 不是 kind，是 `quinn-synthesize` 在 P2 从 Attempt / Feedback / ApplicationReport 派生的视图（能力证据不重复保存原始产物）。
+
+### 字段与枚举
+
+#### Goal —— `workspace/goals/`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `desired_behavior` | string | 可观察行为目标 |
+| `context` | string | 目标服务的真实情境 |
+| `constraints` | list[string] | 用户声明的约束（可选） |
+| `evidence_criteria` | list[string] | 用户确认的可观察验收标准（2–4 条，自由文本） |
+| `status` | string | `GOAL_STATUSES = {draft, active, completed, archived}` |
+| `record_ids` | list[string] | 关联训练记录，走引用完整性 |
+| `topic` | string（可选） | 便于 `find`/恢复的短标题 |
+
+状态机（轻量）：`draft → active → {completed, archived}`。`active → completed` 需 `record_ids` 非空（指向证据），validate 时软校验。
+
+#### TrainingSession —— `workspace/training_sessions/`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `goal_id` | string | **必填**，→ `goals`，引用校验 |
+| `delivery_mode` | string | `DELIVERY_MODES = {learning, demo, assistance}` |
+| `task_ref` | string | 任务配方 id，如 `structured-expression` / `judgment-verification` |
+| `rubric_version` | string | 如 `v1`，开启会话时固定 |
+| `status` | string | `TRAINING_STATUSES`（见下），状态机校验 |
+| `topic` | string（可选） | 短标题 |
+| `session_id` | string（可选） | → `sessions` 叙事记录 |
+| `record_ids` | list[string] | 关联记录 |
+| `next_step` | string（可选） | 恢复位置 |
+
+`TRAINING_STATUSES = {draft, active, awaiting_attempt, awaiting_application, reviewed, paused, cancelled}`。
+
+状态机白名单（`update_record` 强制，非法转换抛错）：
+
+```
+draft                -> active | cancelled
+active               -> awaiting_attempt | awaiting_application | paused | cancelled
+awaiting_attempt     -> active | awaiting_application | reviewed | paused | cancelled
+awaiting_application -> awaiting_attempt | reviewed | paused | cancelled
+paused               -> active | awaiting_attempt | awaiting_application | cancelled
+reviewed             -> (终态；后续会话是共享 goal_id 的 NEW training_sessions)
+cancelled            -> (终态)
+```
+
+创建时只能 `draft`（信息不全态）。
+
+#### Attempt —— `workspace/attempts/`（不可变）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `session_id` | string | **必填**，→ `training_sessions` |
+| `task_variant_id` | string（可选） | 任务配方内变体；P2 记录「只改一个条件」 |
+| `assistance_level` | string | `ASSISTANCE_LEVELS = {independent, hinted, template, demonstrated, coauthored}` |
+| `assistance_details` | list[dict] | 实际用到的帮助，每项 `{type, ref, note}`；`type` ∈ `{hint, template, demonstration, prompt}` |
+| `evidence_kind` | string | `EVIDENCE_KINDS = {understanding, application, transfer}` |
+| `submitted_at` | string（可选） | 缺省取 `created_at` |
+
+正文 = 用户产物逐字保留，不被反馈覆盖。`update_record` 对 `attempts` 直接拒绝。证据来源由 `assistance_level` 派生：`independent`→user_artifact，`hinted`/`template`→user_artifact-with-help，`demonstrated`→model_demo，`coauthored`→mixed。
+
+#### Feedback —— `workspace/feedback/`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `attempt_id` | string | **必填**，→ `attempts` |
+| `rubric_version` | string | 固定，须与会话一致 |
+| `evidence_spans` | list[dict] | `{quote, criterion_id}` 引用的原文片段 |
+| `criterion_results` | list[dict] | `{criterion_id, verdict, source_quote, missing_info, improvement_action}` |
+| `next_action` | string | 一个可执行修改动作 |
+| `next_step` | string（可选） | 可跳过的小练习 |
+| `user_corrections` | list[dict] | `{at, correction, note}`，追加，原 `criterion_results` 保留 |
+
+`verdict` ∈ `FEEDBACK_VERDICTS = {demonstrated, needs_work, insufficient_evidence}`。跨字段规则：`demonstrated`/`needs_work` 需 `source_quote` 非空；`insufficient_evidence` 合法无引用。
+
+#### ApplicationReport —— `workspace/application_reports/`（P2）
+
+| 字段 | 类型 |
+| --- | --- |
+| `session_id` | string → `training_sessions` |
+| `external_practice_run_id` | string（可选，Finch PracticeRun） |
+| `observation` | string |
+| `outcome` | string |
+| `provenance` | `PROVENANCES = {user_artifact, user_report, external_feedback, model_assessment}` |
+| `application_status` | `APPLICATION_STATUSES = {not_reported, reported}` |
+| `record_ids` | list[string] |
+
+`application_status` 缺省 `not_reported`，直到有现实反馈。
+
+#### Handoff —— `workspace/handoffs/`（P3）
+
+| 字段 | 类型 |
+| --- | --- |
+| `handoff_id` | string（外部稳定 id） |
+| `direction` | `HANDOFF_DIRECTIONS = {finch_to_quinn, quinn_to_finch}` |
+| `external_refs` | list[dict] |
+| `status` | `HANDOFF_STATUSES = {pending, imported, exported, rejected}` |
+| `imported_revision` | int（可选） |
+| `record_ids` | list[string] |
+
+### 硬规则
+
+- 模型生成的示范不算 `user_artifact`；任务协助（`assistance`）输出不计为独立能力证据；照抄示范记 `demonstrated`，不归独立表现。
+- 反馈是建议性评价，用户可纠正：保留原判定与纠正，不静默覆盖。
+- 没有现实反馈时 `application_status = not_reported`；不得把训练中完成的模拟任务写成实际执行。
+- 跨 kind 引用顺序：goal → training_session → attempt → feedback（引用记录先落盘，再写引用方，脚本强制）。
+- 旧 `sessions` 里的头脑风暴 / 迁移 / 地头力正文小节保持原样，不迁移为新 kind，不重写。

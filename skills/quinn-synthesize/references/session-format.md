@@ -153,6 +153,10 @@ Quinn 提议标「候选」，用户确认后才算其立场；未经认可不�
 
 暂停、继续、提前结束与完成都更新同一 session；提前结束如实记录未完成部分；恢复直接读保存状态，不从摘要猜测进度；重复保存不新建记录（沿用 create → read → update 同一 ID）。
 
+## 训练闭环（quinn-practice）
+
+训练闭环记录（`goals` / `training_sessions` / `attempts` / `feedback`）是独立 kind，由 `quinn-practice` 经 `scripts/workspace.py` 写，**不写进 `sessions`**。字段与状态机见 `shared/contracts.md` §10。若训练过程中同时发生探索性讨论，synthesize 仍按本文件写 `sessions`，并把 session ID 记入 `training_sessions.session_id`（可选）。
+
 ## 与旧记录的关系
 
 - `discussions` / `insights` / `topics` 种类仍存在，旧文件可读。

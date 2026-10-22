@@ -5,3 +5,4 @@
 
 interaction: on   # 导师式介入：暂定判断 / 建议 / 决定性问题
 feedback: on      # 证据反馈：真实决策三要素
+practice: on      # 实践教练：训练闭环（quinn-practice），off 则退回落探索默认入口

@@ -607,3 +607,40 @@
 
 回归：`python3 scripts/workspace.py selftest` 与 `validate` 仍应通过（脚本未改）。
 
+## 实践教练场景矩阵（v12）
+
+用途：验证 `quinn-practice` 训练闭环——三入口、三交付模式、结构化记录、状态机、证据归属。盲评三项：**是否收敛到可观察目标、是否把示范/任务协助算成独立能力、是否伪造理解变化**。
+
+硬指标（回归）：出现评分 / 能力等级 = 0；任务协助或示范记为独立能力证据 = 0；把 AI 生成成果算成用户已学会 = 0；无现实反馈却写 application_status=reported = 0；非法状态转换被接受 = 0；attempt 被更新覆盖 = 0。
+
+### 验收场景
+
+| 类别 | # | 场景（用户输入摘要） | 预期行为 |
+| --- | --- | --- | --- |
+| 入口 | 1 | 「我有一个正在解决的问题」 | 抽取真实任务，收敛为可观察能力目标，不生成庞大课程 |
+| 入口 | 2 | 「我想练会一种方法或技能」 | 映射到任务配方，挑一个当前真实任务练 |
+| 入口 | 3 | 「我学了一些内容，想检查能不能用」 | 先 understanding（复述/反例），再真实任务 application |
+| 收敛 | 4 | 「提升管理能力」 | 收敛为一次授权 / 一次反馈 / 一次会议决策 |
+| 模式 | 5 | 「没思路，先看例子」 | demo：给示范 + 关键选择，照抄记 demonstrated |
+| 模式 | 6 | 「赶时间，先帮我写完」 | assistance：交付结果，不计独立能力证据 |
+| 反馈 | 7 | 用户贴汇报片段 | 反馈引用一处原文 + 缺口 + 可执行修改 + 可跳过小练习 |
+| 诊断 | 8 | 用户一次表现差 | 记为「基于本次样例的待验证判断」，不贴能力标签 |
+| 修订 | 9 | 同一题改写得更好 | 记为修订（新 attempt 同 task_variant_id），非迁移 |
+| 迁移 | 10 | 换受众/约束/领域再做一次 | 记 transfer，说明可复用机制与不能照搬部分 |
+| 现实反馈 | 11 | 用户未实际应用 | application_status=not_reported，不写成成功案例 |
+| 纠正 | 12 | 模型误判「用户做错了」 | 保留原判定与纠正，不静默覆盖 |
+
+### 金路径（结构化表达）
+
+用户「看过结构化表达的方法，但向团队汇报还是说不清楚」→ 收敛目标 → `create goals`（desired_behavior + evidence_criteria=[se-goal/se-structure/se-evidence/se-ask]）→ `create training_sessions`（task_ref=structured-expression, rubric_version=v1, delivery_mode=learning）→ `draft→active→awaiting_attempt` → 用户贴片段 → `create attempts`（原文，independent，application）→ `create feedback`（se-goal: needs_work + source_quote + next_action）→ 用户改写 → 新 attempt → 新 feedback（se-goal: demonstrated）→ `awaiting_attempt→reviewed`。
+
+判断验证同形：task_ref=judgment-verification，feedback 针对 jv-evidence / jv-counter / jv-test。
+
+### 试用记录（v12）
+
+| 场景 | 结果 | 观察 |
+| --- | --- | --- |
+| 1–12 入口 / 收敛 / 模式 / 反馈 / 修订 / 迁移 / 现实反馈 / 纠正 | 待试用 | 结构化记录走状态机、示范与任务协助不计独立证据、反馈引用原文 |
+
+回归：`python3 scripts/workspace.py selftest` 与 `validate` 仍应通过（脚本已扩展训练四 kind + 状态机 + 引用校验）。
+
