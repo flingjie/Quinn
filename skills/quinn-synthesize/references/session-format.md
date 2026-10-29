@@ -45,6 +45,8 @@
 
 禁止：把模型总结写成用户立场；为“有变化”而编造前后差异；保存失败却报告成功。
 
+> 命名对账：外部文档会话级 `confirmation ∈ proposed/confirmed/corrected/rejected` 映射为——`proposed`＝「Quinn 候选」/`candidate_reframe`；`confirmed`＝`user_stance: accepted` 或经历复盘用户回应 `confirmed`；`corrected`＝`revised`；`rejected`＝`user_stance: rejected` 或经历复盘用户回应 `rejected`。不新增字段、不升 `schema_version`。
+
 ## 回看记录
 
 回看是 synthesize 的按需用法，复用 session 记录（不新增 kind）。frontmatter 映射：

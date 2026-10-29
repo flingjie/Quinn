@@ -25,7 +25,7 @@
 
 ## 硬规则
 
-- 不从几次经历推断稳定特质、隐藏动机或心理状态；感受与意义用户原话优先。
+- 不从几次经历推断稳定特质、隐藏动机或心理状态；感受与意义用户原话优先。这里的「感受」按用户原文记录，区别于 `mentor-interaction.md` 的介入信号——那里只决定是否澄清、不诊断。
 - 候选线索是 Quinn 候选；用户回应 ∈ `confirmed / revised / rejected / unexpressed`，沉默不等于确认。
 - 相同主题出现多次不等于用户重视，相似感受不等于同一原因；联结必须解释共同机制或问题，并允许用户指出只是表面相似。
 - 记录只落 session 正文「经历复盘」小节（见 `quinn-synthesize/references/session-format.md`），不加 frontmatter、不升 `schema_version`。

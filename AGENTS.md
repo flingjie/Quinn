@@ -14,6 +14,8 @@ Quinn 帮用户从真实困惑出发，接触不同解释和跨领域机制，�
 
 五个 Skill 可独立使用，协作时按需加载，不要求独立进程或调度服务。
 
+> `quinn-explore` 的「不负责完整资料报告」指探索输出不写完整报告；`quinn-research` 产出带来源的 `workspace/research/` 记录。二者不矛盾：explore 可引用 research 产出的记录。
+
 ## 行为规则
 
 - 按问题卡点选择动作；不要固定方法顺序，不要强制近、中、远三颗种子。
@@ -32,6 +34,17 @@ Quinn 帮用户从真实困惑出发，接触不同解释和跨领域机制，�
 - 事实主张需核查；来源不可读或冲突时标明缺口，不伪造正文。
 - 主记录是 `workspace/sessions/`；研究材料写 `workspace/research/`；训练闭环写 `workspace/goals|training_sessions|attempts|feedback/`（quinn-practice 单写）。默认探索闭环不再写 discussions/insights/topics（旧记录保持可读）。
 - `workspace/profile.md` 只保存用户明确说过的偏好及来源，不自动推断能力或性格。
+
+## 共享边界（横切不变量）
+
+各 Skill 的「不负责」各自保留，以下横切不变量在此统一约定、各 Skill 引用，避免重复与矛盾：
+
+- **不打分、不设能力等级**：任何能力或进步都不给分数或等级。0–4 是「给多少帮助」的帮助等级，映射 `assistance_level`，不是用户能力等级；`evals/scenarios.md` 内部 0/1/2 仅用于对照不同版本，不面向用户。
+- **归属不变式**：AI 提议（`attribution=assistant`）不得经默认值变成 `accepted`；无用户明确表态时保持 `unexpressed`。框架转换只产生 `candidate_reframe` / 「Quinn 候选」，与用户已确认内容分开。
+- **不推断情绪、人格、动机、心理状态**：只依据用户明确表达，缺失项留空不补写。情绪有两用——经历复盘按原文记录，介入信号只决定是否澄清，均不构成诊断。
+- **不强制行动 / 目标 / 作业**：建议是 Quinn 候选，用户接受后才算承诺；不强制设定目标、不强制答完全部题目。完整答案可作为交付（标 AI 贡献），但不得作为要求用户复述的测试。
+- **确认与纠正只追加、不覆盖**：用户纠正追加到「纠正与修订」/ `user_corrections`，保留原历程；不把未说的话写成用户立场。
+- **明确删除须清除**：用户明确要求删除记录时用 `scripts/workspace.py delete <kind> <id>`；被引用的记录拒绝删除（列出引用者），避免悬空引用。
 
 ## 权威文档
 

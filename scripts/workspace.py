@@ -12,6 +12,7 @@
     python3 scripts/workspace.py read <id>
     python3 scripts/workspace.py update <id> <revision> [payload]
     python3 scripts/workspace.py find <query> [kind] [--since YYYY-MM-DD] [--until YYYY-MM-DD]
+    python3 scripts/workspace.py delete <kind> <id>
     python3 scripts/workspace.py validate
     python3 scripts/workspace.py selftest
 
@@ -467,6 +468,46 @@ def update_record(record_id: str, expected_revision: int, payload: dict | None =
     return fm["revision"]
 
 
+def _find_referrers(record_id: str) -> set[str]:
+    """返回引用 record_id 的其他记录（kind/id 形式），跨 kind 扫描。"""
+    referrers: set[str] = set()
+    for kind in KINDS:
+        d = _kind_dir(kind)
+        if not os.path.isdir(d):
+            continue
+        for name in sorted(os.listdir(d)):
+            if not name.endswith(".md"):
+                continue
+            other_id = name[:-3]
+            if other_id == record_id:
+                continue
+            p = os.path.join(d, name)
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    fm, _ = _parse_file(f.read())
+            except OSError:
+                continue
+            if isinstance(fm, dict) and record_id in _referenced_ids(fm):
+                referrers.add(f"{kind}/{other_id}")
+    return referrers
+
+
+def delete_record(kind: str, record_id: str) -> str:
+    """删除未被引用的记录，返回被删除记录 id；被引用则拒绝并列出引用者。"""
+    if kind not in KINDS:
+        raise ValueError(f"未知记录类型: {kind!r}（可选 {KINDS}）")
+    _check_id(record_id)
+    path = os.path.join(_kind_dir(kind), record_id + ".md")
+    with _locked():
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"记录 {record_id} 不存在")
+        referrers = _find_referrers(record_id)
+        if referrers:
+            raise ValueError(f"记录 {record_id} 被引用，不能删除：{', '.join(sorted(referrers))}")
+        os.remove(path)
+    return record_id
+
+
 def _is_iso_date(v: str) -> bool:
     """v 是否为合法 YYYY-MM-DD。"""
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
@@ -668,6 +709,10 @@ def main(argv: list[str]) -> int:
     p.add_argument("--since", help="只返回 updated_at 日期 >= 此值（YYYY-MM-DD 或 ISO）")
     p.add_argument("--until", help="只返回 updated_at 日期 <= 此值（YYYY-MM-DD 或 ISO）")
 
+    p = sub.add_parser("delete", help="删除未被引用的记录")
+    p.add_argument("kind", choices=KINDS)
+    p.add_argument("id")
+
     sub.add_parser("validate", help="校验工作区结构、引用与归属")
     sub.add_parser("selftest", help="运行自检（创建/读/更新/冲突/校验）")
 
@@ -686,6 +731,9 @@ def main(argv: list[str]) -> int:
             _print_json({"id": args.id, "revision": new_rev})
         elif args.cmd == "find":
             _print_json(find_records(args.query, args.kind, args.since, args.until))
+        elif args.cmd == "delete":
+            record_id = delete_record(args.kind, args.id)
+            _print_json({"deleted": record_id, "kind": args.kind})
         elif args.cmd == "validate":
             _print_json(validate_workspace())
         elif args.cmd == "selftest":
@@ -1032,6 +1080,27 @@ def _selftest() -> int:
             check("非法 handoffs status 被拒", False)
         except ValueError:
             check("非法 handoffs status 被拒", True)
+
+        # --- 删除（P2） ---
+        del_orphan = create_record(
+            "sessions",
+            {"mode": "explore", "topic": "自检删除孤儿", "topic_ids": [], "record_ids": [], "research_ids": [], "status": "exploring", "next_step": ""},
+        )
+        created.append(del_orphan)
+        delete_record("sessions", del_orphan)
+        check("delete 未被引用记录成功且文件消失", not os.path.exists(os.path.join(_kind_dir("sessions"), del_orphan + ".md")))
+
+        try:
+            delete_record("research", research_id)
+            check("delete 被引用记录被拒", False)
+        except ValueError as e:
+            check("delete 被引用记录被拒并列引用者", "引用" in str(e))
+
+        try:
+            delete_record("sessions", "no-such-record")
+            check("delete 不存在记录报错", False)
+        except FileNotFoundError:
+            check("delete 不存在记录报错", True)
 
         report = validate_workspace()
         self_issues = [i for i in report["issues"] if any(f"/{rid}]" in i for rid in created)]

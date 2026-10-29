@@ -118,6 +118,8 @@
 > - Session 正文中的「当前理解」必须区分用户表达与 Quinn 候选总结。
 > - 框架转换只产生 `candidate_reframe`，记入 session 正文，与用户已确认内容分开，不自动成为用户立场。
 
+> 命名对账：外部文档中会话级 `confirmation ∈ proposed/confirmed/corrected/rejected` 对应本文现有枚举——`proposed`＝`candidate_reframe` / 「Quinn 候选」（`attribution=assistant`）；`confirmed`＝`user_stance: accepted` 或经历复盘用户回应 `confirmed`；`corrected`＝`revised`（经历复盘用户回应）；`rejected`＝`user_stance: rejected` 或经历复盘用户回应 `rejected`。不新增枚举、不升 `schema_version`。
+
 ## 5. 证据引用与来源
 
 - `EvidenceRef` = `{ record_id: string, source_id: string, relation?: string }`。`record_id` 指向 research 记录，`source_id` 是该记录 `sources` 列表内的条目 id；`relation`（可选）为该证据对解释的关系，取值见下方。证据引用不自动推出用户态度。
@@ -163,6 +165,7 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 - 重复执行用已保存的 `record_id` + `expected_revision`；版本冲突重新读取并合并，不静默覆盖。
 - 保存失败明确说明哪些内容未保存，保留可重试结果；源数据与用户原文不在恢复中重生成。
 - 恢复会话：按主题、ID 或近期 `find` 结果读取最少相关 session，先复述一句上下文再继续。
+- 删除：`python3 scripts/workspace.py delete <kind> <id>` 删除一条记录；被其他记录引用时拒绝并列出引用者，避免悬空引用。`delete` 是操作，不改变 `schema_version`。`workspace/profile.md` 非 kind，删除/纠正走普通文件编辑。
 
 ## 10. 训练闭环记录（`quinn-practice`）
 

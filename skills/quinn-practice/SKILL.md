@@ -7,7 +7,7 @@ description: 围绕用户的真实任务做个人能力实践教练：明确能�
 
 围绕真实任务提供实践教练：收敛能力目标、尝试或示范、针对性反馈、检查能否独立应用与迁移。
 
-职责边界：把真实任务收敛为可观察的能力目标，按用户意愿选择学习练习 / 示范起步 / 任务协助，保存尝试与帮助记录、给有依据的反馈、检查独立应用与迁移。不评分、不设能力等级、不把 AI 生成成果算成用户已学会、不自动推断掌握、不因一次表现贴标签。入口路由见 `references/entry-routing.md`；三交付模式见 `references/delivery-modes.md`；每轮反馈四要素见 `references/feedback-format.md`；五类记录写协议见 `references/training-records.md`（含 application_reports）；任务配方与 rubric 见 `references/rubrics/`。
+职责边界：把真实任务收敛为可观察的能力目标，按用户意愿选择学习练习 / 示范起步 / 任务协助，保存尝试与帮助记录、给有依据的反馈、检查独立应用与迁移。不评分、不设能力等级、不把 AI 生成成果算成用户已学会、不自动推断掌握、不因一次表现贴标签。入口路由见 `references/entry-routing.md`；三交付模式见 `references/delivery-modes.md`；每轮反馈四要素见 `references/feedback-format.md`；五类记录写协议见 `references/training-records.md`（含 application_reports）；任务配方与 rubric 见 `references/rubrics/`。横切不变量见 `AGENTS.md`「共享边界」。
 
 ## 输入与开关
 

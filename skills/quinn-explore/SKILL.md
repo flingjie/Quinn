@@ -7,7 +7,7 @@ description: 从真实困惑出发理解卡点、按需使用框架转换算子�
 
 理解困惑、选择动作、按需使用框架转换算子、提供不同方向、共同迁移、检查边界。
 
-职责边界：产出可讨论的解释或问题、可选机会假设；不强制决策、改观点、评分或设计实验。事实足够或原判断已合理时可直接结束。没有新见解就说明。详细卡点、种子差异、迁移与质量合同见 `references/exploration-guide.md`；框架转换算子与证据闸门见 `references/reframing-operators.md`；导师式判断、建议与决定性问题见 `references/mentor-interaction.md`；迁移练习（举一反三，可选、用户发起）见 `references/transfer-practice.md`；从经历发现问题（经历复盘）见 `references/experience-reflection.md`；Notion 日记材料见 `references/notion-diary.md`。
+职责边界：产出可讨论的解释或问题、可选机会假设；不强制决策、改观点、评分或设计实验。事实足够或原判断已合理时可直接结束。没有新见解就说明。详细卡点、种子差异、迁移与质量合同见 `references/exploration-guide.md`；框架转换算子与证据闸门见 `references/reframing-operators.md`；导师式判断、建议与决定性问题见 `references/mentor-interaction.md`；迁移练习（举一反三，可选、用户发起）见 `references/transfer-practice.md`；从经历发现问题（经历复盘）见 `references/experience-reflection.md`；Notion 日记材料见 `references/notion-diary.md`。横切不变量见 `AGENTS.md`「共享边界」。
 
 ## 输入
 
