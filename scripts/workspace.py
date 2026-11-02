@@ -256,6 +256,74 @@ def _atomic_write(path: str, text: str) -> None:
     os.replace(tmp, path)
 
 
+# 每 kind 的声明式校验规则：enums = {字段: 合法枚举}，required = ((字段, 缺失说明), ...)
+KIND_RULES = {
+    "sessions": {
+        "enums": {"status": SESSION_STATUSES, "change_status": CHANGE_STATUSES},
+        "required": (),
+    },
+    "goals": {
+        "enums": {"status": GOAL_STATUSES},
+        "required": (("desired_behavior", "可观察行为目标必填"),),
+    },
+    "training_sessions": {
+        "enums": {"status": TRAINING_STATUSES, "delivery_mode": DELIVERY_MODES},
+        "required": (("goal_id", "训练会话必填目标"),),
+    },
+    "attempts": {
+        "enums": {"assistance_level": ASSISTANCE_LEVELS, "evidence_kind": EVIDENCE_KINDS},
+        "required": (("session_id", "尝试必填所属训练会话"),),
+    },
+    "feedback": {
+        "enums": {},
+        "required": (("attempt_id", "反馈必填所属尝试"), ("rubric_version", "反馈必填 rubric 版本")),
+    },
+}
+
+
+def _check_stance_quote(fm: dict, issues: list[str]) -> None:
+    """user_stance 为明确表态时，history 须含 user_quote 原话依据。"""
+    stance = fm.get("user_stance")
+    if stance in ("accepted", "partial", "withheld", "rejected"):
+        history = fm.get("history") or []
+        if not any(isinstance(h, dict) and h.get("user_quote") for h in history):
+            issues.append(f"user_stance={stance} 但 history 缺少 user_quote（表态需原话依据，防默认接受）")
+
+
+def _check_session_dates(fm: dict, issues: list[str]) -> None:
+    """sessions 可选的 period_start / period_end 须为 YYYY-MM-DD。"""
+    for key in ("period_start", "period_end"):
+        val = fm.get(key)
+        if val is not None and not _is_iso_date(str(val).strip()):
+            issues.append(f"非法 {key}: {val!r}（应为 YYYY-MM-DD）")
+
+
+def _check_assistance_details(fm: dict, issues: list[str]) -> None:
+    """attempts 的 assistance_details[].type 枚举校验。"""
+    for d in fm.get("assistance_details") or []:
+        if isinstance(d, dict) and d.get("type") not in ASSISTANCE_DETAIL_TYPES:
+            issues.append(f"非法 assistance_details.type: {d.get('type')!r}（可选 {sorted(ASSISTANCE_DETAIL_TYPES)}）")
+
+
+def _check_criterion_results(fm: dict, issues: list[str]) -> None:
+    """feedback 的 criterion_results[].verdict 枚举与 source_quote 联动。"""
+    for cr in fm.get("criterion_results") or []:
+        if isinstance(cr, dict):
+            v = cr.get("verdict")
+            if v is not None and v not in FEEDBACK_VERDICTS:
+                issues.append(f"非法 criterion_results.verdict: {v!r}（可选 {sorted(FEEDBACK_VERDICTS)}）")
+            if v in ("demonstrated", "needs_work") and not cr.get("source_quote"):
+                issues.append(f"verdict={v} 需 source_quote 非空（引用用户尝试原文）")
+
+
+# 规则表之外的跨字段特例检查（按 kind 调用，顺序与原 if/elif 链一致）
+KIND_CHECKS = {
+    "sessions": (_check_session_dates,),
+    "attempts": (_check_assistance_details,),
+    "feedback": (_check_criterion_results,),
+}
+
+
 def _collect_issues(fm: dict, kind: str) -> list[str]:
     """对单个 frontmatter 做枚举与归属校验，返回问题列表（无记录前缀）。"""
     issues: list[str] = []
@@ -265,62 +333,18 @@ def _collect_issues(fm: dict, kind: str) -> list[str]:
     stance = fm.get("user_stance")
     if stance is not None and stance not in USER_STANCES:
         issues.append(f"非法 user_stance: {stance!r}（可选 {sorted(USER_STANCES)}）")
-    if stance in ("accepted", "partial", "withheld", "rejected"):
-        history = fm.get("history") or []
-        if not any(isinstance(h, dict) and h.get("user_quote") for h in history):
-            issues.append(f"user_stance={stance} 但 history 缺少 user_quote（表态需原话依据，防默认接受）")
-    if kind == "sessions":
-        status = fm.get("status")
-        if status is not None and status not in SESSION_STATUSES:
-            issues.append(f"非法 status: {status!r}（可选 {sorted(SESSION_STATUSES)}）")
-        change_status = fm.get("change_status")
-        if change_status is not None and change_status not in CHANGE_STATUSES:
-            issues.append(
-                f"非法 change_status: {change_status!r}（可选 {sorted(CHANGE_STATUSES)}）"
-            )
-        for key in ("period_start", "period_end"):
-            val = fm.get(key)
-            if val is not None and not _is_iso_date(str(val).strip()):
-                issues.append(f"非法 {key}: {val!r}（应为 YYYY-MM-DD）")
-    elif kind == "goals":
-        status = fm.get("status")
-        if status is not None and status not in GOAL_STATUSES:
-            issues.append(f"非法 status: {status!r}（可选 {sorted(GOAL_STATUSES)}）")
-        if not fm.get("desired_behavior"):
-            issues.append("缺 desired_behavior（可观察行为目标必填）")
-    elif kind == "training_sessions":
-        status = fm.get("status")
-        if status is not None and status not in TRAINING_STATUSES:
-            issues.append(f"非法 status: {status!r}（可选 {sorted(TRAINING_STATUSES)}）")
-        dm = fm.get("delivery_mode")
-        if dm is not None and dm not in DELIVERY_MODES:
-            issues.append(f"非法 delivery_mode: {dm!r}（可选 {sorted(DELIVERY_MODES)}）")
-        if not fm.get("goal_id"):
-            issues.append("缺 goal_id（训练会话必填目标）")
-    elif kind == "attempts":
-        al = fm.get("assistance_level")
-        if al is not None and al not in ASSISTANCE_LEVELS:
-            issues.append(f"非法 assistance_level: {al!r}（可选 {sorted(ASSISTANCE_LEVELS)}）")
-        ek = fm.get("evidence_kind")
-        if ek is not None and ek not in EVIDENCE_KINDS:
-            issues.append(f"非法 evidence_kind: {ek!r}（可选 {sorted(EVIDENCE_KINDS)}）")
-        if not fm.get("session_id"):
-            issues.append("缺 session_id（尝试必填所属训练会话）")
-        for d in fm.get("assistance_details") or []:
-            if isinstance(d, dict) and d.get("type") not in ASSISTANCE_DETAIL_TYPES:
-                issues.append(f"非法 assistance_details.type: {d.get('type')!r}（可选 {sorted(ASSISTANCE_DETAIL_TYPES)}）")
-    elif kind == "feedback":
-        if not fm.get("attempt_id"):
-            issues.append("缺 attempt_id（反馈必填所属尝试）")
-        if not fm.get("rubric_version"):
-            issues.append("缺 rubric_version（反馈必填 rubric 版本）")
-        for cr in fm.get("criterion_results") or []:
-            if isinstance(cr, dict):
-                v = cr.get("verdict")
-                if v is not None and v not in FEEDBACK_VERDICTS:
-                    issues.append(f"非法 criterion_results.verdict: {v!r}（可选 {sorted(FEEDBACK_VERDICTS)}）")
-                if v in ("demonstrated", "needs_work") and not cr.get("source_quote"):
-                    issues.append(f"verdict={v} 需 source_quote 非空（引用用户尝试原文）")
+    _check_stance_quote(fm, issues)
+    rules = KIND_RULES.get(kind)
+    if rules:
+        for field, allowed in rules["enums"].items():
+            v = fm.get(field)
+            if v is not None and v not in allowed:
+                issues.append(f"非法 {field}: {v!r}（可选 {sorted(allowed)}）")
+        for field, note in rules["required"]:
+            if not fm.get(field):
+                issues.append(f"缺 {field}（{note}）")
+    for check in KIND_CHECKS.get(kind, ()):
+        check(fm, issues)
     for oq in fm.get("open_questions") or []:
         if isinstance(oq, dict):
             st = oq.get("status")
