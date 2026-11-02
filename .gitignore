@@ -8,6 +8,7 @@ __pycache__/
 # 平台本地配置
 .claude/
 .codex/
+.worktrees/
 
 # 个人研究记录（不纳入版本控制）
 workspace/topics/
