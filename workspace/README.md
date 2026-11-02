@@ -11,8 +11,6 @@ Quinn 的持久化目录：探索会话与研究材料以「YAML frontmatter + M
 | `training_sessions/` | 训练主记录（TrainingSession，训练闭环） | gitignore |
 | `attempts/` | 用户尝试（Attempt，不可变） | gitignore |
 | `feedback/` | 反馈（Feedback） | gitignore |
-| `application_reports/` | 实际应用报告（P2） | gitignore |
-| `handoffs/` | 与 Finch 交接（P3） | gitignore |
 | `research/` | 按需研究材料及来源 | gitignore |
 | `topics/` | 专题摘要（旧路径，默认探索不再更新） | gitignore |
 | `discussions/` | 旧讨论记录（默认探索不再创建） | gitignore |
@@ -38,7 +36,7 @@ payload 为 YAML/JSON（保留键 `body` 放正文）。`find` 结果含 `update
 
 `profile.md` 不是 kind：由 synthesize 在用户明确表态时直接读写；格式见 `examples/profile.md`。
 
-四个 Skill（`skills/quinn-*`）负责生成 payload 并调用脚本，不直接操作 kind 文件。
+五个 Skill（`skills/quinn-*`）负责生成 payload 并调用脚本，不直接操作 kind 文件。
 
 ## 示例
 

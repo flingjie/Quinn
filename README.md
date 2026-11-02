@@ -40,9 +40,9 @@ AI 是主要应用落点，也允许完全非 AI 的探索。跨领域、前提�
 
 无需每次输出实验或走完固定流程。允许确认原判断、暂无变化或只有开放问题。
 
-迁移练习是**可选、用户发起**的路径，可随时“给提示 / 直接示范 / 跳过 / 结束练习”；不评分、不设能力等级，记录只用描述态（未作答 / 已示范（复述）/ 有提示后完成 / 本次无提示完成）。
+迁移练习是**可选、用户发起**的路径，可随时“给提示 / 直接示范 / 跳过 / 结束练习”；记录只用描述态（未作答 / 已示范（复述）/ 有提示后完成 / 本次无提示完成）。横切不变量见 `AGENTS.md`「共享边界」。
 
-头脑风暴练习（`quinn-brainstorming`）同为可选、用户发起；不打分、不设能力等级，记录只用描述态。
+头脑风暴练习（`quinn-brainstorming`）同为可选、用户发起；记录只用描述态。
 
 ## 目录
 
@@ -65,4 +65,4 @@ Python 3 + PyYAML（`pip install pyyaml`），仅 `scripts/workspace.py` 需要�
 主线实现方案：`docs/Quinn-Cross-Domain-Exploration-Implementation-Plan.md`  
 数据契约：`shared/contracts.md`  
 扩展能力设计：`docs/Quinn-Periodic-Review-Implementation-Plan.md`（周期回看）、`docs/Quinn-Experience-Reflection-Implementation-Plan.md`（经历复盘）、`docs/Quinn-Inner-Outer-Balance-Optimization-Plan.md`（内外部平衡）、`docs/Quinn-Transfer-Thinking-Optimization-Plan.md`（迁移练习）  
-历史方案：`docs/Quinn-Research-Strategy-Implementation-Plan.md`
+历史与过程产物：`docs/archive/`

@@ -1,12 +1,12 @@
 # Quinn 共享契约（Contracts）
 
-本文定义 Quinn 四个 Skill（research / explore / synthesize / brainstorming）共用的数据约定：记录如何存储、字段如何命名、归属与证据如何标记、谁负责写什么。四个 Skill 与 `scripts/workspace.py` 均以本文为唯一真源。
+本文定义 Quinn Skill（research / explore / synthesize / brainstorming / practice）共用的数据约定：记录如何存储、字段如何命名、归属与证据如何标记、谁负责写什么。各 Skill 与 `scripts/workspace.py` 均以本文为唯一真源。
 
-> 原则：可追溯（重要事实能找到来源）、归属清晰（作者主张 / AI 提议 / 用户判断三者不混）、不伪造（证据不足时保留未知）。任何一条都不允许"AI 提议经默认值变成用户已接受"。理解变化必须依据用户表达；模型总结未经用户支持时标为候选，不得写成用户立场。
+> 原则：可追溯（重要事实能找到来源）、归属清晰（作者主张 / AI 提议 / 用户判断三者不混）、不伪造（证据不足时保留未知）。任何一条都不允许"AI 提议经默认值变成用户已接受"。理解变化必须依据用户表达；模型总结未经用户支持时标为候选，不得写成用户立场。横切不变量见 `AGENTS.md`「共享边界」。
 
 ## 1. 文件位置与命名
 
-- 记录存 `workspace/<kind>/<id>.md`，`kind` ∈ `topics` / `research` / `discussions` / `insights` / `sessions`。
+- 记录存 `workspace/<kind>/<id>.md`，`kind` ∈ `research` / `sessions` / `goals` / `training_sessions` / `attempts` / `feedback`（另有旧路径 `topics` / `discussions` / `insights`，见附录）。
 - `id` 为随机唯一标识（UUID），由脚本生成；**不以标题或中文名作文件名**，避免重名与引用失效。
 - 文件由 YAML frontmatter（夹在 `---` 之间）+ Markdown 正文组成。frontmatter 为结构化元数据，正文为人类可读的转述、原文与说明。
 - 显式偏好另存 `workspace/profile.md`（非 kind，非脚本管理；无文件视为空偏好）。
@@ -27,18 +27,7 @@
 
 ## 3. 对象字段
 
-### Topic（专题）—— `workspace/topics/`
-
-旧路径保留，可读可写；**默认探索闭环不再更新**。
-
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `title` | string | 专题名 |
-| `aliases` | list[string] | 别名/同义关键词 |
-| `scope` | string | 专题范围说明 |
-| `record_ids` | list[string] | 关联记录 ID（research/discussion/insight） |
-| `summary` | string | 当前认识摘要 |
-| `open_questions` | list[OpenQuestion] | 下次可调查的问题 |
+旧路径 `topics` / `discussions` / `insights` 保留可读可写；**默认探索闭环不再创建或更新**。字段表见文末附录。
 
 ### Research（研究记录）—— `workspace/research/`
 
@@ -54,14 +43,6 @@
 | `discussion_directions` | list[string] | 可选；默认探索不要求凑方向，可 `[]` |
 
 正文应区分：**事实** / **类比** / **假设**。
-
-### Discussion（讨论记录）—— `workspace/discussions/`
-
-旧路径保留；**默认探索闭环不再创建**。字段仍为：`question`、`research_ids`、`turns`、`explanations`、`methods_used`、`opportunities`、`user_stance_summary`。
-
-### Insight（认识）—— `workspace/insights/`
-
-旧路径保留；**默认探索闭环不再创建**。字段仍为：`question`、`explanation`、`attribution`、`user_stance`、`evidence_refs`、`boundaries`、`open_questions`、`history`。用户明确要求整理旧认识时仍可使用。
 
 ### Session（探索会话）—— `workspace/sessions/`
 
@@ -91,7 +72,7 @@
 回看是 `quinn-synthesize` 的按需用法，**不是新 kind**，复用 session 记录：
 
 - `mode: synthesize`；`topic` 以「回看」开头并含日期范围（如 `回看 2026-07-01~2026-09-30：<主题>`）。
-- `record_ids` 复用为**源会话 ID**列表（沿用引用完整性校验：脚本只校验 ID 存在、不校验其 kind；skill 应只放 session ID。本 MVP 不强制 kind，见 P2 候选「结构化 source_session_ids」）。
+- `record_ids` 复用为**源会话 ID**列表（沿用引用完整性校验：脚本只校验 ID 存在、不校验其 kind；skill 应只放 session ID）。
 - 新增**可选**字段 `period_start` / `period_end`（`YYYY-MM-DD`），仅回看记录填写；普通 session 不写，向后兼容，不升 `schema_version`。
 - `status` 沿用现有枚举 `exploring` / `paused` / `closed`（回看语境可读作 draft / discussed / closed）；`change_status` 沿用 `expressed` / `original_confirmed` / `no_change` / `unconfirmed`。status 不代表结论正确。
 - 归属三分类不变：已有记录中的用户表达 / 外部可核查事实 / Quinn 候选解释；AI 提议不得经默认值变成用户已接受。
@@ -117,8 +98,6 @@
 > - 归属不清时一律保留 `assistant`；只有归属会影响具体输出且无法从原文判断时，才向用户问一句。
 > - Session 正文中的「当前理解」必须区分用户表达与 Quinn 候选总结。
 > - 框架转换只产生 `candidate_reframe`，记入 session 正文，与用户已确认内容分开，不自动成为用户立场。
-
-> 命名对账：外部文档中会话级 `confirmation ∈ proposed/confirmed/corrected/rejected` 对应本文现有枚举——`proposed`＝`candidate_reframe` / 「Quinn 候选」（`attribution=assistant`）；`confirmed`＝`user_stance: accepted` 或经历复盘用户回应 `confirmed`；`corrected`＝`revised`（经历复盘用户回应）；`rejected`＝`user_stance: rejected` 或经历复盘用户回应 `rejected`。不新增枚举、不升 `schema_version`。
 
 ## 5. 证据引用与来源
 
@@ -155,8 +134,9 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 - `quinn-explore` 引导探索；**不再默认写 discussions**。
 - `quinn-synthesize` 写/更新 **session**（主记录）；负责恢复、纠正、回访与 profile 显式偏好更新。
 - `quinn-brainstorming` 生成书写问题与反馈；session 由 synthesize 写、research 按需由 research 写。
+- `quinn-practice` 单写 goals / training_sessions / attempts / feedback（见 §10）。
 - 用户明确要求时，synthesize 仍可写 insight / 更新 topic（旧路径）。
-- 四个 Skill 经同一脚本更新记录；重复保存不新建 session。
+- 各 Skill 经同一脚本更新记录；重复保存不新建 session。
 
 ## 9. 恢复与一致性
 
@@ -169,7 +149,7 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 
 ## 10. 训练闭环记录（`quinn-practice`）
 
-训练闭环是 Quinn 作为「个人能力实践教练」的结构化闭环：真实任务 → 明确能力目标 → 尝试或示范 → 针对性反馈 → 再次尝试 → 实际应用 → 新场景迁移。训练记录与探索 `sessions` 分开，由 `quinn-practice` 单写，`scripts/workspace.py` 校验。六个 kind，全部为增量新增，`schema_version` 仍为 `"1"`，不升版本号。
+训练闭环是 Quinn 作为「个人能力实践教练」的结构化闭环：真实任务 → 明确能力目标 → 尝试或示范 → 针对性反馈 → 再次尝试 → 新场景迁移。训练记录与探索 `sessions` 分开，由 `quinn-practice` 单写，`scripts/workspace.py` 校验。四个 kind，全部为增量新增，`schema_version` 仍为 `"1"`，不升版本号。现实应用结果暂记相关 session 正文，不另建 kind。
 
 ### Kind 清单
 
@@ -179,10 +159,6 @@ Session 的纠正与后续证据在**同一 session 文件**正文追加，不�
 | `training_sessions` | `workspace/training_sessions/` | 训练主记录（TrainingSession） | quinn-practice |
 | `attempts` | `workspace/attempts/` | 用户尝试（Attempt，**不可变**） | quinn-practice |
 | `feedback` | `workspace/feedback/` | 反馈（Feedback，`user_corrections` 追加） | quinn-practice |
-| `application_reports` | `workspace/application_reports/` | 实际应用报告（P2） | quinn-practice |
-| `handoffs` | `workspace/handoffs/` | 与 Finch 交接（P3） | quinn-practice |
-
-`SkillEvidence` 不是 kind，是 `quinn-synthesize` 在 P2 从 Attempt / Feedback / ApplicationReport 派生的视图（能力证据不重复保存原始产物）。
 
 ### 字段与枚举
 
@@ -235,7 +211,7 @@ cancelled            -> (终态)
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `session_id` | string | **必填**，→ `training_sessions` |
-| `task_variant_id` | string（可选） | 任务配方内变体；P2 记录「只改一个条件」 |
+| `task_variant_id` | string（可选） | 任务配方内变体；换条件时记录「只改一个条件」 |
 | `assistance_level` | string | `ASSISTANCE_LEVELS = {independent, hinted, template, demonstrated, coauthored}` |
 | `assistance_details` | list[dict] | 实际用到的帮助，每项 `{type, ref, note}`；`type` ∈ `{hint, template, demonstration, prompt}` |
 | `evidence_kind` | string | `EVIDENCE_KINDS = {understanding, application, transfer}` |
@@ -257,46 +233,33 @@ cancelled            -> (终态)
 
 `verdict` ∈ `FEEDBACK_VERDICTS = {demonstrated, needs_work, insufficient_evidence}`。跨字段规则：`demonstrated`/`needs_work` 需 `source_quote` 非空；`insufficient_evidence` 合法无引用。
 
-#### ApplicationReport —— `workspace/application_reports/`（P2）
-
-| 字段 | 类型 |
-| --- | --- |
-| `session_id` | string → `training_sessions` |
-| `external_practice_run_id` | string（可选，Finch PracticeRun） |
-| `observation` | string |
-| `outcome` | string |
-| `provenance` | `PROVENANCES = {user_artifact, user_report, external_feedback, model_assessment}` |
-| `application_status` | `APPLICATION_STATUSES = {not_reported, reported}` |
-| `record_ids` | list[string] |
-
-`application_status` 缺省 `not_reported`，直到有现实反馈。
-
-#### Handoff —— `workspace/handoffs/`（P3）
-
-| 字段 | 类型 |
-| --- | --- |
-| `handoff_id` | string（外部稳定 id） |
-| `direction` | `HANDOFF_DIRECTIONS = {finch_to_quinn, quinn_to_finch}` |
-| `external_refs` | list[dict] |
-| `status` | `HANDOFF_STATUSES = {pending, imported, exported, rejected}` |
-| `imported_revision` | int（可选） |
-| `record_ids` | list[string] |
-
 ### 硬规则
 
 - 模型生成的示范不算 `user_artifact`；任务协助（`assistance`）输出不计为独立能力证据；照抄示范记 `demonstrated`，不归独立表现。
 - 反馈是建议性评价，用户可纠正：保留原判定与纠正，不静默覆盖。
-- 没有现实反馈时 `application_status = not_reported`；不得把训练中完成的模拟任务写成实际执行。
+- 现实应用结果暂记相关 session 正文；不得把训练中完成的模拟任务写成实际执行。
 - 跨 kind 引用顺序：goal → training_session → attempt → feedback（引用记录先落盘，再写引用方，脚本强制）。
 - 旧 `sessions` 里的头脑风暴 / 迁移 / 地头力正文小节保持原样，不迁移为新 kind，不重写。
 
-### 能力证据（SkillEvidence，派生视图，P2）
+## 附录：旧路径字段（只读兼容）
 
-能力证据不是 kind，是 `quinn-synthesize` 从 Attempt / Feedback / ApplicationReport 派生的视图：按 `goal_id` 分组，按 `assistance_level` 与 `evidence_kind` 分类，逐条列出证据，不合成一个分数或永久标签。可显示的状态短语（每条附 backing attempt/feedback 引用）：
+默认探索闭环不再创建或更新下列 kind；脚本仍可读、可删、可校验。用户明确要求时，synthesize 仍可写 insight / 更新 topic。
 
-- `一次独立表现`：`application` attempt 且 `assistance_level=independent`，对应 feedback 有 `demonstrated`。
-- `有提示时完成`：`application` attempt 且 `assistance_level∈{hinted,template}`，对应 feedback 有 `demonstrated`。
-- `新场景表现记录`：`transfer` attempt（`task_variant_id` 记录改变的那一个条件），有可观察结果。
-- `证据不足`：无可支撑上述任一的记录。
+### Topic（专题）—— `workspace/topics/`
 
-同一 goal 可同时有多条；不自动推断永久掌握，不把示范（`demonstrated`/`coauthored`）或任务协助算作独立表现。推导规则与延迟检查见 `skills/quinn-synthesize/references/evidence-view.md`。
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `title` | string | 专题名 |
+| `aliases` | list[string] | 别名/同义关键词 |
+| `scope` | string | 专题范围说明 |
+| `record_ids` | list[string] | 关联记录 ID（research/discussion/insight） |
+| `summary` | string | 当前认识摘要 |
+| `open_questions` | list[OpenQuestion] | 下次可调查的问题 |
+
+### Discussion（讨论记录）—— `workspace/discussions/`
+
+字段：`question`、`research_ids`、`turns`、`explanations`、`methods_used`、`opportunities`、`user_stance_summary`。
+
+### Insight（认识）—— `workspace/insights/`
+
+字段：`question`、`explanation`、`attribution`、`user_stance`、`evidence_refs`、`boundaries`、`open_questions`、`history`。

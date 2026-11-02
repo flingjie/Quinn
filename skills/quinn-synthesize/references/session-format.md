@@ -43,9 +43,7 @@
 | 继续位置 | 一句说明下一次从哪里接上 |
 | 纠正与修订（可选） | 用户纠错时追加，保留原历程 |
 
-禁止：把模型总结写成用户立场；为“有变化”而编造前后差异；保存失败却报告成功。
-
-> 命名对账：外部文档会话级 `confirmation ∈ proposed/confirmed/corrected/rejected` 映射为——`proposed`＝「Quinn 候选」/`candidate_reframe`；`confirmed`＝`user_stance: accepted` 或经历复盘用户回应 `confirmed`；`corrected`＝`revised`；`rejected`＝`user_stance: rejected` 或经历复盘用户回应 `rejected`。不新增字段、不升 `schema_version`。
+禁止：把模型总结写成用户立场；为“有变化”而编造前后差异；保存失败却报告成功。归属与纠正规则见 `AGENTS.md`「共享边界」与 `shared/contracts.md` §4。
 
 ## 回看记录
 
@@ -128,7 +126,7 @@ Quinn 提议标「候选」，用户确认后才算其立场；未经认可不�
 | 本次表现 | 仅描述态：未作答 / 跳过 / 已示范（复述）/ 有提示后完成 / 本次无提示完成 |
 | 重用位置 | 可复用的机制理解 + 边界 + 继续位置；记录本次是否提前透露机制 |
 
-本次表现只描述、不打分，不推断能力等级。示范后复述不等于独立迁移；提示后正确须保留提示上下文；机制名先给出时记「已知机制应用」，不写「独立识别」。归属规则详见 `transfer-practice.md`。
+本次表现只描述（横切不变量见 `AGENTS.md`「共享边界」）。示范后复述不等于独立迁移；提示后正确须保留提示上下文；机制名先给出时记「已知机制应用」，不写「独立识别」。归属规则详见 `transfer-practice.md`。
 
 ## 头脑风暴练习（可选）
 

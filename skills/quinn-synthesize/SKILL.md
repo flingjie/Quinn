@@ -117,11 +117,11 @@ Quinn 可以给建议，但由用户决定是否调整目标。单次结果不�
 
 用户明确要求删除某条记录时，用 `python3 scripts/workspace.py delete <kind> <id>`；被引用的记录会被拒绝删除（列出引用者），避免悬空引用。删除只在用户明确指令下执行，不自行删改记录；其余纠正走 append-only「纠正与修订」，不覆盖原历程。`workspace/profile.md` 条目删除/纠正＝编辑该文件移除该条及来源，不走脚本。
 
-## 训练证据视图与延迟检查（P2）
+## 训练回顾与现实应用
 
-用户问「我练得怎么样」「检查一下进步」、结束训练会话，或回访要现实应用结果时：按 `references/evidence-view.md` 从 Attempt / Feedback / ApplicationReport 派生证据视图，只列证据、不合成分数或永久标签。延迟检查只问结果不自答，有现实反馈按 `quinn-practice` 的写协议写 `application_reports`（缺省 `not_reported`），不把模拟任务写成实际执行。
+用户问「我练得怎么样」「检查一下进步」、结束训练会话，或回访要现实应用结果时：按 `goal_id` 读取相关 Attempt / Feedback，按 `assistance_level` 与 `evidence_kind` 逐条列证据（如「一次独立表现」「有提示时完成」「新场景表现记录」「证据不足」），不合成分数或永久标签；不把示范（`demonstrated`/`coauthored`）或任务协助算作独立表现。延迟检查只问结果不自答；有现实反馈时把 observation / outcome 追加到相关 session 正文，不把模拟任务写成实际执行。
 
-## 回访与主动选题（P3）
+## 回访与主动选题
 
 - **回访：** 用户要求回访或带来新线索时，从相关 session 选**一个**开放问题；引入新证据或新问题，不重放旧结论。需要核查时转 research。地头力训练（jitou）的验证状态回填复用此处：用户说「回看上次训练 / 回看验证结果」时读 `mode: jitou` 的 session，只问新增结果，把验证状态更新为 supported / refuted / mixed / inconclusive，不要求重跑整个训练。
 - **主动选题：** 用户说“给我一个值得想的问题”时，读 `workspace/profile.md`（若存在）中的显式兴趣，并用 `find` 看近期 sessions，避免重复同一结论或只推荐熟悉领域；找少量异常，核实后交给 explore 作为入口。

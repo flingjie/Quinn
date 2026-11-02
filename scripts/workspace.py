@@ -49,7 +49,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "workspace"))
 LOCK_PATH = os.path.join(WORKSPACE_ROOT, ".lock")
 
-KINDS = ("topics", "research", "discussions", "insights", "sessions", "goals", "training_sessions", "attempts", "feedback", "application_reports", "handoffs")
+KINDS = ("topics", "research", "discussions", "insights", "sessions", "goals", "training_sessions", "attempts", "feedback")
 SCHEMA_VERSION = "1"
 
 ATTRIBUTIONS = {"source_author", "assistant", "user"}
@@ -87,10 +87,6 @@ ASSISTANCE_LEVELS = {"independent", "hinted", "template", "demonstrated", "coaut
 ASSISTANCE_DETAIL_TYPES = {"hint", "template", "demonstration", "prompt"}
 EVIDENCE_KINDS = {"understanding", "application", "transfer"}
 FEEDBACK_VERDICTS = {"demonstrated", "needs_work", "insufficient_evidence"}
-PROVENANCES = {"user_artifact", "user_report", "external_feedback", "model_assessment"}
-APPLICATION_STATUSES = {"not_reported", "reported"}
-HANDOFF_DIRECTIONS = {"finch_to_quinn", "quinn_to_finch"}
-HANDOFF_STATUSES = {"pending", "imported", "exported", "rejected"}
 
 # 训练闭环状态机白名单（update_record 强制）
 TRAINING_TRANSITIONS = {
@@ -325,26 +321,6 @@ def _collect_issues(fm: dict, kind: str) -> list[str]:
                     issues.append(f"非法 criterion_results.verdict: {v!r}（可选 {sorted(FEEDBACK_VERDICTS)}）")
                 if v in ("demonstrated", "needs_work") and not cr.get("source_quote"):
                     issues.append(f"verdict={v} 需 source_quote 非空（引用用户尝试原文）")
-    elif kind == "application_reports":
-        if not fm.get("session_id"):
-            issues.append("缺 session_id（应用报告必填所属训练会话）")
-        prov = fm.get("provenance")
-        if prov is not None and prov not in PROVENANCES:
-            issues.append(f"非法 provenance: {prov!r}（可选 {sorted(PROVENANCES)}）")
-        st = fm.get("application_status")
-        if st is not None and st not in APPLICATION_STATUSES:
-            issues.append(f"非法 application_status: {st!r}（可选 {sorted(APPLICATION_STATUSES)}）")
-        if st == "reported" and not prov:
-            issues.append("application_status=reported 需 provenance（谁报告的）")
-    elif kind == "handoffs":
-        if not fm.get("handoff_id"):
-            issues.append("缺 handoff_id（交接记录必填外部稳定 id）")
-        direction = fm.get("direction")
-        if direction is not None and direction not in HANDOFF_DIRECTIONS:
-            issues.append(f"非法 direction: {direction!r}（可选 {sorted(HANDOFF_DIRECTIONS)}）")
-        status = fm.get("status")
-        if status is not None and status not in HANDOFF_STATUSES:
-            issues.append(f"非法 status: {status!r}（可选 {sorted(HANDOFF_STATUSES)}）")
     for oq in fm.get("open_questions") or []:
         if isinstance(oq, dict):
             st = oq.get("status")
@@ -656,8 +632,6 @@ def validate_workspace() -> dict:
             _check_kind_ref(fm, "session_id", "training_sessions", issues, kind, record_id, ids)
         elif kind == "feedback":
             _check_kind_ref(fm, "attempt_id", "attempts", issues, kind, record_id, ids)
-        elif kind == "application_reports":
-            _check_kind_ref(fm, "session_id", "training_sessions", issues, kind, record_id, ids)
     return {"issues": issues, "summary": {"records": len(ids), "issues": len(issues)}}
 
 
@@ -1031,57 +1005,7 @@ def _selftest() -> int:
         check("feedback 追加 user_corrections 递增 revision", frev == 2 and frec["revision"] == 2)
         check("feedback 保留原 criterion_results", frec["frontmatter"]["criterion_results"][0]["verdict"] == "needs_work")
 
-        app_report_id = create_record(
-            "application_reports",
-            {"session_id": ts_id, "observation": "用户报告：在真实汇报中用了新开头", "outcome": "听众更快进入主题", "provenance": "user_report", "application_status": "reported", "record_ids": []},
-        )
-        created.append(app_report_id)
-        check("create application_reports", app_report_id)
-
-        try:
-            create_record("application_reports", {"session_id": "no-such-session", "provenance": "user_report", "application_status": "not_reported"})
-            check("application_reports 引用不存在 session 被拒", False)
-        except ValueError:
-            check("application_reports 引用不存在 session 被拒", True)
-
-        try:
-            create_record("application_reports", {"session_id": ts_id, "provenance": "guess", "application_status": "not_reported"})
-            check("非法 provenance 被拒", False)
-        except ValueError:
-            check("非法 provenance 被拒", True)
-
-        try:
-            create_record("application_reports", {"session_id": ts_id, "application_status": "reported"})
-            check("application_status=reported 缺 provenance 被拒", False)
-        except ValueError:
-            check("application_status=reported 缺 provenance 被拒", True)
-
-        handoff_id = create_record(
-            "handoffs",
-            {"handoff_id": "finch-run-001", "direction": "finch_to_quinn", "external_refs": [], "status": "pending", "record_ids": []},
-        )
-        created.append(handoff_id)
-        check("create handoffs", handoff_id)
-
-        try:
-            create_record("handoffs", {"direction": "quinn_to_finch", "status": "pending"})
-            check("handoffs 缺 handoff_id 被拒", False)
-        except ValueError:
-            check("handoffs 缺 handoff_id 被拒", True)
-
-        try:
-            create_record("handoffs", {"handoff_id": "x", "direction": "sideways", "status": "pending"})
-            check("非法 handoffs direction 被拒", False)
-        except ValueError:
-            check("非法 handoffs direction 被拒", True)
-
-        try:
-            create_record("handoffs", {"handoff_id": "x", "direction": "quinn_to_finch", "status": "done"})
-            check("非法 handoffs status 被拒", False)
-        except ValueError:
-            check("非法 handoffs status 被拒", True)
-
-        # --- 删除（P2） ---
+        # --- 删除 ---
         del_orphan = create_record(
             "sessions",
             {"mode": "explore", "topic": "自检删除孤儿", "topic_ids": [], "record_ids": [], "research_ids": [], "status": "exploring", "next_step": ""},

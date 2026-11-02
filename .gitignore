@@ -19,11 +19,10 @@ workspace/goals/
 workspace/training_sessions/
 workspace/attempts/
 workspace/feedback/
-workspace/application_reports/
-workspace/handoffs/
 workspace/profile.md
 workspace/config.md
 workspace/.lock
 
 # 凭据（不进版本控制）
 .env
+.superpowers/
