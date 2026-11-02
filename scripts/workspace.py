@@ -597,6 +597,7 @@ def validate_workspace() -> dict:
     """检查结构、引用完整性与归属约束，返回 {issues, summary}。"""
     issues: list[str] = []
     ids: dict[str, str] = {}
+    fms: dict[str, dict] = {}
     for kind in KINDS:
         d = _kind_dir(kind)
         if not os.path.isdir(d):
@@ -619,6 +620,8 @@ def validate_workspace() -> dict:
             if record_id in ids:
                 issues.append(f"[{kind}/{record_id}] 重复 ID（同一 id 出现在多个 kind，引用无法定位）")
             ids[record_id] = kind
+            # 重复 ID 时保留首个（KINDS 顺序），与原先 _record_path 的选取一致
+            fms.setdefault(record_id, fm)
             if fm.get("id") != record_id:
                 issues.append(f"[{kind}/{record_id}] id 与文件名不一致")
             for field in RESERVED_FIELDS:
@@ -628,11 +631,9 @@ def validate_workspace() -> dict:
                 issues.append(f"[{kind}/{record_id}] revision 非法")
             for msg in _collect_issues(fm, kind):
                 issues.append(f"[{kind}/{record_id}] {msg}")
-    # 引用完整性
+    # 引用完整性（复用第一遍解析结果，不再重新读文件）
     for record_id, kind in ids.items():
-        _, p = _record_path(record_id)
-        with open(p, "r", encoding="utf-8") as f:
-            fm, _ = _parse_file(f.read())
+        fm = fms[record_id]
         plain: list[str] = []
         for field in ("topic_ids", "record_ids", "research_ids"):
             v = fm.get(field) or []
